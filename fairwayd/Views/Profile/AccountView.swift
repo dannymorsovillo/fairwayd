@@ -7,13 +7,9 @@
 
 import SwiftUI
 
-enum ColorMode {
-    case light
-    case dark
-}
     struct AccountView: View {
         @EnvironmentObject var session: SessionStore
-        @State private var curColorMode: ColorMode = .light
+        @AppStorage("isDarkMode") private var isDarkMode: Bool?
         
         var body: some View {
             Form {
@@ -71,39 +67,25 @@ enum ColorMode {
                         ProfileFormView(mode: .edit)
                     } label: {
                         Label("Edit Profile", systemImage: "person.circle")
+                            .foregroundStyle(.green)
                     }
                 }
                 
                 Section("Preferences") {
-                    Button{
-                        switch curColorMode {
-                        case .light:
-                            curColorMode = .dark
-                        case .dark:
-                            curColorMode = .light
-                            
-                        }
-                    } label: {
-                        HStack {
-                            switch curColorMode {
-                            case .light:
-                                Image(systemName: "moon")
-                                    .foregroundStyle(Color.green)
-                                Text("Enable Dark Mode")
-                                    .foregroundStyle(Color.primary)
-                                    .preferredColorScheme(.light)
-                            case .dark:
-                                Image(systemName: "sun.max")
-                                    .foregroundStyle(Color.green)
-                                Text("Enable Light Mode")
-                                    .foregroundStyle(Color.primary)
-                                    .preferredColorScheme(.dark)
-                            }
-                            Spacer()
-                        }
+                    Toggle(isOn: Binding(
+                        get: { isDarkMode ?? false },
+                        set: { isDarkMode = $0 }
+                    ).animation()) {
+                        Label(isDarkMode == true ? "Dark Mode" : "Light Mode",
+                              systemImage: isDarkMode == true ? "moon.fill" : "sun.max.fill")
+                        .foregroundStyle(.green)
                     }
-                    
+                    .tint(.green)
                 }
+                    
+                //Spacer()
+                    
+            
                 Section {
                     Button(role: .destructive){
                         session.signOut()
@@ -118,6 +100,8 @@ enum ColorMode {
                 }
             }
             .navigationTitle("Account")
+            .preferredColorScheme(isDarkMode == true ? .dark : isDarkMode == false ? .light : nil)
+
         }
     }
 

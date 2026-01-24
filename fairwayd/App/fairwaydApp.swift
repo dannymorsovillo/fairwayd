@@ -5,6 +5,7 @@
 //  Created by Danny Morsovillo on 11/12/25.
 //
 import SwiftUI
+import GoogleSignIn
 
 @main
 struct fairwaydApp: App {
@@ -66,6 +67,10 @@ struct fairwaydApp: App {
                 .task {
                     session.engagementStore = engagementStore
                 }
+                .onOpenURL(perform: { url in
+                    GIDSignIn.sharedInstance.handle(url)
+                }
+                )
            // #endif
         }
     }

@@ -5,6 +5,7 @@
 
 import Foundation
 import Supabase
+import GoogleSignIn
 import Combine
 
 class SessionStore: ObservableObject {
@@ -292,6 +293,56 @@ class SessionStore: ObservableObject {
             }
         }
     }
+    
+    
+    func signInWithGoogle() {
+        Task {
+            isLoading = true
+            errorMessage = nil
+            
+            do {
+                guard let presentingViewController = getRootViewController() else {
+                    throw URLError(.badURL)
+                }
+                
+                let result = try await GIDSignIn.sharedInstance.signIn(
+                    withPresenting: presentingViewController
+                )
+                
+                guard let idToken = result.user.idToken?.tokenString else {
+                    throw URLError(.badServerResponse)
+                }
+                
+               try await supabase.auth.signInWithIdToken(
+                    credentials: .init(
+                        provider: .google,
+                        idToken: idToken
+                    )
+                )
+                
+                await checkSession()
+                
+                await MainActor.run {
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Google sign-in failed"
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func getRootViewController() -> UIViewController? {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            return nil
+        }
+        return rootViewController
+    }
+
 }
 
 struct User {
@@ -346,4 +397,5 @@ struct UserProfileData: Codable {
     let city: String
     let state: String
 }
+
 

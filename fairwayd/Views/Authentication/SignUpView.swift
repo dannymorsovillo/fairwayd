@@ -6,7 +6,7 @@
 //
 import SwiftUI
 
-struct SignupView: View {
+struct SignUpView: View {
     @EnvironmentObject var session: SessionStore
     @Binding var mode: AuthMode
 
@@ -24,6 +24,7 @@ struct SignupView: View {
                 Button("Back") {
                     withAnimation {
                         mode = .landing
+                        session.errorMessage = nil
                     }
                 }
                 .tint(.green)
@@ -73,7 +74,6 @@ struct SignupView: View {
                         .foregroundColor(.red)
                         .font(.caption)
                         .multilineTextAlignment(.center)
-                    
                 }
                 
                 Button{
@@ -86,17 +86,31 @@ struct SignupView: View {
                     if session.isLoading {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
                     } else {
                         Text("Create Account")
                             .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderless)
                 .tint(.green)
+                .disabled(session.isLoading)
+                
+                //or
+                HStack {
+                    VStack { Divider() }
+                    Text("or")
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                    VStack { Divider() }
+                }
+                .padding(.vertical, 8)
+                
+                
+                Button {
+                    session.signInWithGoogle()
+                } label: {
+                    Image("ios_neutral_rd_SU")
+                }
                 .disabled(session.isLoading)
             }
             Spacer()
@@ -104,6 +118,9 @@ struct SignupView: View {
         .padding()
     }
 }
-
+#Preview {
+    SignUpView(mode: .constant(.signup))
+        .environmentObject(SessionStore())
+}
 
  

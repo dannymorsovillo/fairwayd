@@ -28,7 +28,7 @@ struct RootView: View {
                         case .login:
                             LoginView(mode: $mode)
                         case .signup:
-                            SignupView(mode: $mode)
+                            SignUpView(mode: $mode)
                         }
                     }
                     .animation(.easeInOut, value: mode)

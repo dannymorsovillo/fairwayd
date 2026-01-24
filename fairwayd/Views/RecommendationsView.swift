@@ -113,6 +113,7 @@ struct RecView: View {
                     Text("expected_score_diff")
                 }
                 .font(.system(size: 14, design: .monospaced).bold())
+                .foregroundStyle(.black)
                 .padding(2)
                 .background(Color.green)
                 .cornerRadius(8)
