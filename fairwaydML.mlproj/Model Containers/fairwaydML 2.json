@@ -1,0 +1,130 @@
+{
+  "activityEntities" : [
+    "experimentCreated",
+    [
+      {
+        "createdDate" : "2026-01-21T03:00:22Z",
+        "event" : "experimentCreated",
+        "id" : "C0FA3226-E13E-4BA9-93BB-4AED689BB4CF",
+        "subtitle" : "fairwaydML 2",
+        "title" : "Model Source Created"
+      }
+    ]
+  ],
+  "contentDataResult" : {
+
+  },
+  "createdDate" : "2026-01-21T03:00:22Z",
+  "evaluationContainerEntity" : {
+    "createdDate" : "2026-01-21T03:00:22Z",
+    "evaluationEntities" : [
+
+    ],
+    "id" : "5a03fe83-3e11-455b-9566-d6e08e6f02df",
+    "modifiedDate" : "2026-01-21T03:00:22Z",
+    "previewType" : "tabularRegressor",
+    "testingEvaluationEntity" : {
+      "analysedDataType" : "none",
+      "createdDate" : "2026-01-21T03:00:22Z",
+      "dataResult" : {
+
+      },
+      "id" : "21b81c17-c843-45f7-9e4e-7286b32cfcef"
+    },
+    "trainingEvaluationEntity" : {
+      "analysedDataType" : "none",
+      "createdDate" : "2026-01-21T03:00:22Z",
+      "dataResult" : {
+
+      },
+      "id" : "c8cc8f56-1ac4-413c-963e-6c22e691048e"
+    },
+    "validationEvaluationEntity" : {
+      "analysedDataType" : "none",
+      "createdDate" : "2026-01-21T03:00:22Z",
+      "dataResult" : {
+
+      },
+      "id" : "b0b6139f-2ee3-47fe-af2e-b8a4d2961219"
+    }
+  },
+  "evaluationEntity" : {
+    "analysedDataType" : "none",
+    "dataResult" : {
+
+    },
+    "id" : "292064b1-de3f-4ae7-bb02-0ac7e37ecf0e"
+  },
+  "evaluationState" : "uninitialized",
+  "id" : "DBDFC5E6-DEBF-405B-8891-642392060FA4",
+  "modelEntity" : {
+    "createdDate" : "2026-01-21T03:00:22Z",
+    "experimentID" : "DBDFC5E6-DEBF-405B-8891-642392060FA4",
+    "id" : "8FEE0617-F932-4827-BC8B-ADFEBF9D0EE3",
+    "modifiedDate" : "2026-01-21T03:00:22Z",
+    "title" : "",
+    "version" : "1.0"
+  },
+  "modifiedDate" : "2026-01-21T03:00:22Z",
+  "preferredFilename" : "fairwaydML 2",
+  "settingEntity" : {
+    "algorithmType" : "maxEnt",
+    "augmentations" : [
+
+    ],
+    "featureNames" : [
+
+    ],
+    "generalRegressorType" : {
+      "auto" : {
+
+      }
+    },
+    "handActionClassifierAugmentations" : [
+
+    ],
+    "handPoseClassifierAugmentations" : [
+
+    ],
+    "harVideoAugmentations" : 0,
+    "seedType" : "default",
+    "styleTransferAlgorithmType" : "image",
+    "taskType" : "generalRegresor",
+    "transferLearningEmbeddingType" : "dynamic"
+  },
+  "snapshotRole" : {
+    "withoutSnapshots" : 0
+  },
+  "state" : "uninitialized",
+  "title" : "fairwaydML 2",
+  "trainingEntity" : {
+    "analysedDataType" : "choose",
+    "checkpointMetrics" : {
+
+    },
+    "dataResult" : {
+
+    },
+    "featureExtractionCheckpointMayBeAvailable" : false,
+    "progress" : [
+
+    ],
+    "snapshottableCheckpoints" : {
+
+    }
+  },
+  "validationEntity" : {
+    "analysedDataType" : "auto",
+    "dataResult" : {
+
+    },
+    "splitOptions" : {
+      "strategy" : {
+        "automatic" : {
+
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

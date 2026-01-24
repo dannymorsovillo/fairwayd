@@ -1,0 +1,29 @@
+{
+  "activityEntities" : [
+    "projectCreated",
+    [
+      {
+        "createdDate" : "2026-01-20T00:26:01Z",
+        "event" : "projectCreated",
+        "id" : "2CFA61F2-EA62-4CAA-8BE9-E87B957C4966",
+        "subtitle" : "fairwaydML",
+        "title" : "Project Created"
+      }
+    ]
+  ],
+  "authorName" : "Danny Morsovillo",
+  "createdDate" : "2026-01-20T00:26:01Z",
+  "description" : "",
+  "id" : "B62B06A8-C59E-422E-A9AD-89E6FAC21883",
+  "license" : "",
+  "location" : "",
+  "modifiedDate" : "2026-01-20T00:26:01Z",
+  "projectName" : "fairwaydML",
+  "settingsEntity" : {
+    "snapshotOnExtendTraining" : true,
+    "snapshotOnResumeTraining" : false
+  },
+  "taskType" : "generalRegresor",
+  "title" : "Tabular Regression",
+  "version" : "1.1"
+}

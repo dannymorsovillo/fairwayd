@@ -1,0 +1,324 @@
+{
+  "activityEntities" : [
+    "trainingFinished",
+    [
+      {
+        "createdDate" : "2026-01-20T00:40:14Z",
+        "event" : "trainingFinished",
+        "id" : "41FA757A-449B-43CA-A7F4-B62E614ED320",
+        "subtitle" : "fairwaydML 1",
+        "title" : "Training Completed"
+      }
+    ],
+    "trainingDataAdded",
+    [
+      {
+        "createdDate" : "2026-01-20T00:35:50Z",
+        "event" : "trainingDataAdded",
+        "id" : "8C898404-D5B1-413F-AD57-8A6A9548C33A",
+        "subtitle" : "course_training_1 .csv",
+        "title" : "Training Data Added"
+      }
+    ],
+    "trainingStarted",
+    [
+      {
+        "createdDate" : "2026-01-20T00:40:14Z",
+        "event" : "trainingStarted",
+        "id" : "59709B3F-2CC3-49DC-AAAC-01571CC03D27",
+        "subtitle" : "fairwaydML 1",
+        "title" : "Training Started"
+      }
+    ],
+    "experimentCreated",
+    [
+      {
+        "createdDate" : "2026-01-20T00:26:01Z",
+        "event" : "experimentCreated",
+        "id" : "3416297C-3178-4793-A5DB-DF844ECB9B7A",
+        "subtitle" : "fairwaydML 1",
+        "title" : "Model Source Created"
+      }
+    ]
+  ],
+  "contentDataResult" : {
+    "createdDate" : "2026-01-20T00:26:10Z"
+  },
+  "createdDate" : "2026-01-20T00:26:01Z",
+  "evaluationContainerEntity" : {
+    "createdDate" : "2026-01-20T00:40:14Z",
+    "evaluationEntities" : [
+      {
+        "analysedDataType" : "none",
+        "createdDate" : "2026-01-20T00:40:14Z",
+        "dataResult" : {
+
+        },
+        "id" : "601fa975-8243-4ef9-9980-f61b97dfaa0a"
+      }
+    ],
+    "id" : "9840836c-157c-49a8-b4b7-e82f492bc47c",
+    "modifiedDate" : "2026-01-20T00:40:14Z",
+    "previewType" : "tabularRegressor",
+    "testingEvaluationEntity" : {
+      "analysedDataType" : "none",
+      "createdDate" : "2026-01-20T00:26:01Z",
+      "dataResult" : {
+        "createdDate" : "2026-01-20T00:26:10Z"
+      },
+      "id" : "672e0ff0-e752-4b7d-ba98-b168bd655514"
+    },
+    "trainingEvaluationEntity" : {
+      "analysedDataType" : "none",
+      "createdDate" : "2026-01-20T00:26:01Z",
+      "dataResult" : {
+        "createdDate" : "2026-01-20T00:26:10Z",
+        "dataAnalysis" : {
+          "classifierAnalysis" : {
+
+          },
+          "issues" : [
+            {
+              "description" : "Data has 4912 rows",
+              "severity" : "info"
+            }
+          ],
+          "objectDetectorAnalysis" : {
+            "details" : {
+
+            }
+          },
+          "regressorAnalysis" : {
+            "targetRange" : [
+              -16,
+              55.6938053097345
+            ]
+          },
+          "summary" : {
+            "canUseValidation" : 1,
+            "sampleCount" : 4912
+          }
+        },
+        "dataSourceID" : "4B53FDA9-89D6-470F-B38B-8A4D23960402",
+        "dataURL" : "file:///Users/danny/Documents/course_training_1%20.csv",
+        "itemsCount" : 4912,
+        "targetRange" : [
+          -16,
+          55.6938053097345
+        ]
+      },
+      "dataSourceID" : "4B53FDA9-89D6-470F-B38B-8A4D23960402",
+      "evaluationResult" : {
+        "generalRegressor" : {
+          "maximumError" : 1.831934937333621,
+          "rootMeanSquaredError" : 0.33346530078599523
+        }
+      },
+      "id" : "0de08e2f-309c-4fff-919e-7732104bda36"
+    },
+    "validationEvaluationEntity" : {
+      "analysedDataType" : "auto",
+      "createdDate" : "2026-01-20T00:26:01Z",
+      "dataResult" : {
+        "createdDate" : "2026-01-20T00:26:10Z"
+      },
+      "evaluationResult" : {
+        "generalRegressor" : {
+          "maximumError" : 2.578812168762706,
+          "rootMeanSquaredError" : 0.5643258549427809
+        }
+      },
+      "id" : "0a5f019e-85d1-413a-8e58-03b1adff1d34"
+    }
+  },
+  "evaluationEntity" : {
+    "analysedDataType" : "none",
+    "dataResult" : {
+
+    },
+    "id" : "c5f288c5-e8a7-41c1-a153-d75cd3bd9198"
+  },
+  "evaluationState" : "uninitialized",
+  "id" : "C75002B2-35F4-454E-84ED-2D616CF504EF",
+  "modelEntity" : {
+    "createdDate" : "2026-01-20T00:26:01Z",
+    "experimentID" : "C75002B2-35F4-454E-84ED-2D616CF504EF",
+    "id" : "0B387BB0-2BAF-4987-985B-7B30E34CAC17",
+    "modelURL" : "Models/fairwaydML%201.mlmodel",
+    "modifiedDate" : "2026-01-20T00:26:01Z",
+    "title" : "",
+    "version" : "1.0"
+  },
+  "modifiedDate" : "2026-01-20T00:40:14Z",
+  "preferredFilename" : "fairwaydML 1",
+  "settingEntity" : {
+    "algorithmType" : "maxEnt",
+    "augmentations" : [
+
+    ],
+    "featureNames" : [
+      "course_rating",
+      "slope",
+      "bogey_rating",
+      "par",
+      "handicap",
+      "total_yards"
+    ],
+    "generalRegressorType" : {
+      "auto" : {
+
+      }
+    },
+    "handActionClassifierAugmentations" : [
+
+    ],
+    "handPoseClassifierAugmentations" : [
+
+    ],
+    "harVideoAugmentations" : 0,
+    "seedType" : "default",
+    "styleTransferAlgorithmType" : "image",
+    "suggestedColumnTypes" : [
+      "Double",
+      "Int",
+      "Double",
+      "Int",
+      "Double",
+      "Int",
+      "Double"
+    ],
+    "suggestedColumnValues" : [
+      "73.20, 73.20, 73.20, 73.20, 71.90, 71.90, 71.90, 71.90, 70.30, 70.30, 70.30, 70.30, 68.30, 68.30, 68.30, 68.30, 65.10, 65.10, 65.10, 65.10, 78.60, 78.60, 78.60, 78.60, 76.70, 76.70, 76.70, 76.70, 74.10, 74.10",
+      "126, 126, 126, 126, 123, 123, 123, 123, 119, 119, 119, 119, 114, 114, 114, 114, 106, 106, 106, 106, 135, 135, 135, 135, 132, 132, 132, 132, 128, 128",
+      "96.50, 96.50, 96.50, 96.50, 94.70, 94.70, 94.70, 94.70, 92.30, 92.30, 92.30, 92.30, 89.50, 89.50, 89.50, 89.50, 84.80, 84.80, 84.80, 84.80, 110.50, 110.50, 110.50, 110.50, 107.70, 107.70, 107.70, 107.70, 104.20, 104.20",
+      "72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 74, 74, 74, 74, 74, 74, 74, 74, 73, 73",
+      "0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00",
+      "7,002, 7,002, 7,002, 7,002, 6,718, 6,718, 6,718, 6,718, 6,382, 6,382, 6,382, 6,382, 5,956, 5,956, 5,956, 5,956, 5,276, 5,276, 5,276, 5,276, 6,718, 6,718, 6,718, 6,718, 6,382, 6,382, 6,382, 6,382, 5,956, 5,956",
+      "1.20, 9.01, 21.27, 36.88, -0.10, 7.52, 19.49, 34.73, -1.70, 5.67, 17.26, 32.00, -3.70, 3.36, 14.46, 28.58, -6.90, -0.33, 9.98, 23.12, 4.60, 12.96, 26.10, 42.83, 2.70, 10.88, 23.73, 40.08, 1.10, 9.03"
+    ],
+    "suggestedColumns" : [
+      "course_rating",
+      "slope",
+      "bogey_rating",
+      "par",
+      "handicap",
+      "total_yards",
+      "expected_score_diff"
+    ],
+    "targetColumn" : "expected_score_diff",
+    "taskType" : "generalRegresor",
+    "transferLearningEmbeddingType" : "dynamic"
+  },
+  "snapshotRole" : {
+    "withoutSnapshots" : 0
+  },
+  "state" : "trained",
+  "title" : "fairwaydML 1",
+  "trainingEntity" : {
+    "analysedDataType" : "datasource",
+    "checkpointMetrics" : {
+
+    },
+    "dataResult" : {
+      "columnTypes" : [
+        "Double",
+        "Int",
+        "Double",
+        "Int",
+        "Double",
+        "Int",
+        "Double"
+      ],
+      "columnValues" : [
+        "73.20, 73.20, 73.20, 73.20, 71.90, 71.90, 71.90, 71.90, 70.30, 70.30, 70.30, 70.30, 68.30, 68.30, 68.30, 68.30, 65.10, 65.10, 65.10, 65.10, 78.60, 78.60, 78.60, 78.60, 76.70, 76.70, 76.70, 76.70, 74.10, 74.10",
+        "126, 126, 126, 126, 123, 123, 123, 123, 119, 119, 119, 119, 114, 114, 114, 114, 106, 106, 106, 106, 135, 135, 135, 135, 132, 132, 132, 132, 128, 128",
+        "96.50, 96.50, 96.50, 96.50, 94.70, 94.70, 94.70, 94.70, 92.30, 92.30, 92.30, 92.30, 89.50, 89.50, 89.50, 89.50, 84.80, 84.80, 84.80, 84.80, 110.50, 110.50, 110.50, 110.50, 107.70, 107.70, 107.70, 107.70, 104.20, 104.20",
+        "72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 74, 74, 74, 74, 74, 74, 74, 74, 73, 73",
+        "0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00, 18.00, 32.00, 0.00, 7.00",
+        "7,002, 7,002, 7,002, 7,002, 6,718, 6,718, 6,718, 6,718, 6,382, 6,382, 6,382, 6,382, 5,956, 5,956, 5,956, 5,956, 5,276, 5,276, 5,276, 5,276, 6,718, 6,718, 6,718, 6,718, 6,382, 6,382, 6,382, 6,382, 5,956, 5,956",
+        "1.20, 9.01, 21.27, 36.88, -0.10, 7.52, 19.49, 34.73, -1.70, 5.67, 17.26, 32.00, -3.70, 3.36, 14.46, 28.58, -6.90, -0.33, 9.98, 23.12, 4.60, 12.96, 26.10, 42.83, 2.70, 10.88, 23.73, 40.08, 1.10, 9.03"
+      ],
+      "columns" : [
+        "course_rating",
+        "slope",
+        "bogey_rating",
+        "par",
+        "handicap",
+        "total_yards",
+        "expected_score_diff"
+      ],
+      "createdDate" : "2026-01-20T00:26:10Z",
+      "dataAnalysis" : {
+        "classifierAnalysis" : {
+
+        },
+        "issues" : [
+          {
+            "description" : "Data has 4912 rows",
+            "severity" : "info"
+          }
+        ],
+        "objectDetectorAnalysis" : {
+          "details" : {
+
+          }
+        },
+        "regressorAnalysis" : {
+          "targetRange" : [
+            -16,
+            55.6938053097345
+          ]
+        },
+        "summary" : {
+          "canUseValidation" : 1,
+          "sampleCount" : 4912
+        }
+      },
+      "dataSourceID" : "4B53FDA9-89D6-470F-B38B-8A4D23960402",
+      "dataURL" : "file:///Users/danny/Documents/course_training_1%20.csv",
+      "itemsCount" : 4912,
+      "targetRange" : [
+        -16,
+        55.6938053097345
+      ]
+    },
+    "dataSourceID" : "4B53FDA9-89D6-470F-B38B-8A4D23960402",
+    "featureExtractionCheckpointMayBeAvailable" : false,
+    "finishTime" : "2026-01-20T00:40:14Z",
+    "progress" : [
+
+    ],
+    "snapshottableCheckpoints" : {
+
+    },
+    "startTime" : "2026-01-20T00:40:14Z",
+    "trainingAccuracy" : 0.33346530078599523,
+    "trainingResults" : {
+      "generalRegressor" : {
+        "maximumError" : 1.831934937333621,
+        "rootMeanSquaredError" : 0.33346530078599523
+      }
+    },
+    "validationAccuracy" : 0.5643258549427809,
+    "validationResults" : {
+      "generalRegressor" : {
+        "maximumError" : 2.578812168762706,
+        "rootMeanSquaredError" : 0.5643258549427809
+      }
+    }
+  },
+  "validationEntity" : {
+    "analysedDataType" : "auto",
+    "dataResult" : {
+      "createdDate" : "2026-01-20T00:26:10Z"
+    },
+    "splitOptions" : {
+      "strategy" : {
+        "automatic" : {
+
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
