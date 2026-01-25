@@ -26,7 +26,7 @@ class ReviewService: ObservableObject {
                 
         try await supabase.storage
             .from("review-photos")
-            .upload(path: filePath, file: imageData, options: FileOptions(contentType: "image/jpeg"))
+            .upload(filePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
                 
         let publicURL = try supabase.storage
             .from("review-photos")
@@ -106,5 +106,69 @@ class ReviewService: ObservableObject {
         guard !reviews.isEmpty else { return 0 }
         let sum = reviews.reduce(0) { $0 + $1.rating }
         return Double(sum) / Double(reviews.count)
+    }
+
+    func deleteReview(_ review: Review) async throws {
+        // OLD:
+        // guard let reviewId = review.id else {
+        //     throw NSError(domain: "ReviewService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Review ID is missing"])
+        // }
+        // try await supabase
+        //     .from("reviews")
+        //     .delete()
+        //     .eq("id", value: reviewId.uuidString)
+        //     .execute()
+
+        // NEW (Review.id is now non-optional UUID):
+        try await supabase
+            .from("reviews")
+            .delete()
+            .eq("id", value: review.id.uuidString)
+            .execute()
+    }
+
+    private struct ReviewUpdatePayload: Encodable {
+        let username: String
+        let rating: Int
+        let comment: String
+        let course_name: String
+        let course_id: Int?
+        let photo_urls: [String]?
+    }
+
+    func updateReview(_ review: Review) async throws {
+        // OLD:
+        // guard let id = review.id else {
+        //     throw NSError(domain: "ReviewService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Missing review id"])
+        // }
+        // let payload = ReviewUpdatePayload(
+        //     username: review.username,
+        //     rating: review.rating,
+        //     comment: review.comment,
+        //     course_name: review.courseName,
+        //     course_id: review.courseId,
+        //     photo_urls: review.photoUrls
+        // )
+        // try await supabase
+        //     .from("reviews")
+        //     .update(payload)
+        //     .eq("id", value: id.uuidString)
+        //     .execute()
+
+        // NEW (Review.id is now non-optional UUID):
+        let payload = ReviewUpdatePayload(
+            username: review.username,
+            rating: review.rating,
+            comment: review.comment,
+            course_name: review.courseName,
+            course_id: review.courseId,
+            photo_urls: review.photoUrls
+        )
+        
+        try await supabase
+            .from("reviews")
+            .update(payload)
+            .eq("id", value: review.id.uuidString)
+            .execute()
     }
 }

@@ -14,7 +14,9 @@ enum ExploreMode {
     case searching
 }
 
+@MainActor
 final class ExploreService: ObservableObject {
+    // MARK: - Published
     @Published var errorText = ""
     @Published var query = ""
     @Published var isSearching = false
@@ -23,61 +25,65 @@ final class ExploreService: ObservableObject {
     @Published var topSlopeCourses: [GolfCourse] = []
     @Published var topBogeyCourses: [GolfCourse] = []
     @Published var hasLoadedCourses = false
-    
-    private var exploreTask: Task<Void, Never>?
+
+    // MARK: - Private
+    private var currentTask: Task<Void, Never>? = nil
+    private var lastRefresh: Date? = nil
     private let courseCache = CourseCache()
-    private let matchedCourses: [GolfCourse] = []
-    
+
     private let service: GolfCourseService
     private let finderService: GolfCourseFinderService
     private let locationManager: LocationManager
     private let store: EngagementStore
-    
+
+    // MARK: - Init
     init(
         service: GolfCourseService,
         finderService: GolfCourseFinderService,
         store: EngagementStore,
-        locationManager: LocationManager,
+        locationManager: LocationManager
     ) {
         self.service = service
         self.finderService = finderService
         self.store = store
         self.locationManager = locationManager
     }
-    
-    @MainActor
+
+    // MARK: - Search
     func search() {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        exploreTask?.cancel()
+        // Cancel previous task
+        currentTask?.cancel()
         mode = .searching
         isSearching = true
         errorText = ""
 
-        exploreTask = Task {
-            defer { Task { @MainActor in isSearching = false } }
+        currentTask = Task { [weak self] in
+            guard let self else { return }
+            defer { Task { @MainActor in self.isSearching = false } }
 
             do {
-                let courses = try await service.searchCourses(query: trimmed)
+                let courses = try await self.service.searchCourses(query: trimmed)
 
-                // ---------- Nearby courses (for enrichment) ----------
+                // Nearby courses for enrichment
                 let nearbyCourses: [GolfCourse]
-                if let loc = locationManager.location, let cached = await courseCache.get(for: loc) {
+                if let loc = self.locationManager.location, let cached = await self.courseCache.get(for: loc) {
                     nearbyCourses = cached
-                } else if let loc = locationManager.location {
-                    let clubs = try await finderService.fetchNearbyCourses(
+                } else if let loc = self.locationManager.location {
+                    let clubs = try await self.finderService.fetchNearbyCourses(
                         latitude: loc.coordinate.latitude,
                         longitude: loc.coordinate.longitude,
                         miles: 50
                     )
-                    nearbyCourses = finderService.mapNearbyClubsToGolfCourses(clubs)
-                    await courseCache.set(nearbyCourses, for: loc)
+                    nearbyCourses = self.finderService.mapNearbyClubsToGolfCourses(clubs)
+                    await self.courseCache.set(nearbyCourses, for: loc)
                 } else {
                     nearbyCourses = []
                 }
 
-                // ---------- Enrich ----------
+                // Enrich courses concurrently
                 let enrichedCourses = await withTaskGroup(of: GolfCourse.self) { group -> [GolfCourse] in
                     var enriched: [GolfCourse] = []
                     for course in courses {
@@ -90,102 +96,108 @@ final class ExploreService: ObservableObject {
                 }
 
                 await MainActor.run {
-                    service.courses = enrichedCourses
+                    self.service.courses = enrichedCourses
                 }
-
+            } catch is CancellationError {
+                print("Search task cancelled — ignoring")
             } catch {
                 await MainActor.run {
-                    errorText = error.localizedDescription
+                    self.errorText = error.localizedDescription
                 }
             }
         }
     }
 
-    @MainActor
-    func loadDefaultExploreIfNeeded(using location: CLLocation) async {
+    // MARK: - Load Default Explore (if needed)
+    func loadDefaultExploreIfNeeded(using location: CLLocation) {
         guard mode == .explore, !hasLoadedCourses else { return }
-        
-        exploreTask?.cancel()
-        exploreTask = Task {
-            await loadDefaultExplore(using: location)
-                hasLoadedCourses = true
-            }
+        loadDefaultExplore(using: location)
+        hasLoadedCourses = true
     }
 
-    
-    @MainActor
-    func loadDefaultExplore(using location: CLLocation) async {
-        errorText = ""
+    // MARK: - Load Default Explore
+    func loadDefaultExplore(using location: CLLocation, forceReload: Bool = false) {
+        // Prevent overlapping tasks
+        currentTask?.cancel()
+        currentTask = Task { [weak self] in
+            guard let self else { return }
 
-        // ---------- 1. Cache fast-path ----------
-        if let cachedCourses = await courseCache.get(for: location) {
-            topRatedCourses = Array(cachedCourses.sorted { ($0.bestCourseRating ?? 0) > ($1.bestCourseRating ?? 0) }.prefix(6))
-            topSlopeCourses = Array(cachedCourses.sorted { ($0.bestSlopeRating ?? 0) > ($1.bestSlopeRating ?? 0) }.prefix(6))
-            topBogeyCourses = Array(cachedCourses.sorted { ($0.bestBogeyRating ?? 0) > ($1.bestBogeyRating ?? 0) }.prefix(6))
-            return
-        }
+            if forceReload {
+                if let last = self.lastRefresh, Date().timeIntervalSince(last) < 10 {
+                    return
+                }
+                self.lastRefresh = Date()
+            }
 
-        do {
-            // ---------- 2. Fetch nearby courses ----------
-            let nearbyClubs = try await finderService.fetchNearbyCourses(
-                latitude: location.coordinate.latitude,
-                longitude: location.coordinate.longitude,
-                miles: 50
-            )
-            let nearbyCourses = finderService.mapNearbyClubsToGolfCourses(nearbyClubs)
-            await courseCache.set(nearbyCourses, for: location)
+            self.errorText = ""
 
-            // ---------- 3. Search detailed courses ----------
-            let coursesToProcess = Array(nearbyCourses.prefix(100))
-            let matchedCourses = await withTaskGroup(of: GolfCourse?.self) { group -> [GolfCourse] in
-                var results: [GolfCourse] = []
+            // Cache fast-path
+            if !forceReload, let cached = await self.courseCache.get(for: location) {
+                self.topRatedCourses = Array(cached.sorted { ($0.bestCourseRating ?? 0) > ($1.bestCourseRating ?? 0) }.prefix(6))
+                self.topSlopeCourses = Array(cached.sorted { ($0.bestSlopeRating ?? 0) > ($1.bestSlopeRating ?? 0) }.prefix(6))
+                self.topBogeyCourses = Array(cached.sorted { ($0.bestBogeyRating ?? 0) > ($1.bestBogeyRating ?? 0) }.prefix(6))
+                return
+            }
 
-                for (index, nearbyCourse) in coursesToProcess.enumerated() {
-                    group.addTask {
-                        try? await Task.sleep(nanoseconds: UInt64(index * 100_000_000))
-                        do {
-                            let searchResults = try await self.service.searchCourses(query: nearbyCourse.course_name ?? "")
-                            return searchResults.first(where: {
-                                guard let lat = $0.location?.latitude, let lon = $0.location?.longitude else { return false }
-                                let distance = location.distance(from: CLLocation(latitude: lat, longitude: lon)) / 1609.34
-                                return distance <= 50 && normalizeCourseName($0.titleText) == normalizeCourseName(nearbyCourse.titleText)
-                            })
-                        } catch {
-                            print("Search error for \(nearbyCourse.titleText):", error)
-                            return nil
+            do {
+                // Fetch nearby clubs
+                let nearbyClubs = try await self.finderService.fetchNearbyCourses(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    miles: 50
+                )
+                let nearbyCourses = self.finderService.mapNearbyClubsToGolfCourses(nearbyClubs)
+                await self.courseCache.set(nearbyCourses, for: location)
+
+                // Search detailed courses concurrently
+                let coursesToProcess = Array(nearbyCourses.prefix(50))
+                let matchedCourses = await withTaskGroup(of: GolfCourse?.self) { group -> [GolfCourse] in
+                    var results: [GolfCourse] = []
+                    for (index, nearbyCourse) in coursesToProcess.enumerated() {
+                        group.addTask {
+                            try? await Task.sleep(nanoseconds: UInt64(index * 100_000_000))
+                            do {
+                                let searchResults = try await self.service.searchCourses(query: nearbyCourse.course_name ?? "")
+                                return searchResults.first(where: {
+                                    guard let lat = $0.location?.latitude, let lon = $0.location?.longitude else { return false }
+                                    let distance = location.distance(from: CLLocation(latitude: lat, longitude: lon)) / 1609.34
+                                    return distance <= 50 && normalizeCourseName($0.titleText) == normalizeCourseName(nearbyCourse.titleText)
+                                })
+                            } catch {
+                                print("Search error for \(nearbyCourse.titleText):", error)
+                                return nil
+                            }
                         }
                     }
+                    for await result in group { if let course = result { results.append(course) } }
+                    return results
                 }
 
-                for await result in group {
-                    if let course = result { results.append(course) }
-                }
-
-                return results
-            }
-
-            // ---------- 4. Enrich ----------
-            let enrichedCourses = await withTaskGroup(of: GolfCourse.self) { group -> [GolfCourse] in
-                var enriched: [GolfCourse] = []
-                for course in matchedCourses {
-                    group.addTask {
-                        await self.finderService.enrichCourseWContactInfo(course, nearbyCourses: nearbyCourses)
+                // Enrich concurrently
+                let enrichedCourses = await withTaskGroup(of: GolfCourse.self) { group -> [GolfCourse] in
+                    var enriched: [GolfCourse] = []
+                    for course in matchedCourses {
+                        group.addTask {
+                            await self.finderService.enrichCourseWContactInfo(course, nearbyCourses: nearbyCourses)
+                        }
                     }
+                    for await course in group { enriched.append(course) }
+                    return enriched
                 }
-                for await course in group { enriched.append(course) }
-                return enriched
+
+                // Cache + Sort
+                await self.courseCache.set(enrichedCourses, for: location)
+                self.topRatedCourses = Array(enrichedCourses.sorted { ($0.bestCourseRating ?? 0) > ($1.bestCourseRating ?? 0) }.prefix(6))
+                self.topSlopeCourses = Array(enrichedCourses.sorted { ($0.bestSlopeRating ?? 0) > ($1.bestSlopeRating ?? 0) }.prefix(6))
+                self.topBogeyCourses = Array(enrichedCourses.sorted { ($0.bestBogeyRating ?? 0) > ($1.bestBogeyRating ?? 0) }.prefix(6))
+
+            } catch is CancellationError {
+                print("Explore load task cancelled — ignoring")
+            } catch {
+                print("Explore load failed:", error)
+                self.errorText = "Failed to load courses: \(error.localizedDescription)"
             }
-
-            // ---------- 5. Cache + Sort ----------
-            await courseCache.set(enrichedCourses, for: location)
-
-            topRatedCourses = Array(enrichedCourses.sorted { ($0.bestCourseRating ?? 0) > ($1.bestCourseRating ?? 0) }.prefix(6))
-            topSlopeCourses = Array(enrichedCourses.sorted { ($0.bestSlopeRating ?? 0) > ($1.bestSlopeRating ?? 0) }.prefix(6))
-            topBogeyCourses = Array(enrichedCourses.sorted { ($0.bestBogeyRating ?? 0) > ($1.bestBogeyRating ?? 0) }.prefix(6))
-
-        } catch {
-            print("Explore load failed:", error)
-            errorText = "Failed to load courses: \(error.localizedDescription)"
         }
     }
 }
+

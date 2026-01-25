@@ -7,18 +7,17 @@
 import Foundation
 
 struct Review: Identifiable, Codable {
-    let id: UUID? // unique
+    let id: UUID           // unique, now non-optional
     let userId: UUID?
     let username: String
-    let rating: Int       // 1–5 stars
+    let rating: Int        // 1–5 stars
     let comment: String
     let courseName: String
     let courseId: Int?
     let createdAt: Date?
     let photoUrls: [String]?
 
-
-enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
         case username
@@ -29,5 +28,4 @@ enum CodingKeys: String, CodingKey {
         case createdAt = "created_at"
         case photoUrls = "photo_urls"
     }
-
 }

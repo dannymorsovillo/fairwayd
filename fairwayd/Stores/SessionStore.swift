@@ -56,7 +56,7 @@ class SessionStore: ObservableObject {
         await supabase.auth.onAuthStateChange { [weak self] event, session in
             Task { @MainActor in
                 switch event {
-                case .signedIn, .tokenRefreshed, .userUpdated:
+                case .signedIn, .tokenRefreshed, .userUpdated, .mfaChallengeVerified:
                     if let session = session {
                         self?.isAuthenticated = true
                         self?.currentUser = User(
@@ -79,6 +79,22 @@ class SessionStore: ObservableObject {
                     self?.currentUser = nil
                     self?.needsProfileSetup = false
                     self?.engagementStore?.clearUser()
+                case .initialSession:
+                    if let session = session {
+                        self?.isAuthenticated = true
+                        self?.currentUser = User(
+                            id: session.user.id,
+                            email: session.user.email ?? "",
+                            username: session.user.userMetadata["username"]?.stringValue
+                        )
+                        await self?.checkProfileCompletion()
+                        await self?.engagementStore?.setUser(session.user.id)
+                    } else {
+                        self?.isAuthenticated = false
+                        self?.currentUser = nil
+                        self?.needsProfileSetup = false
+                        self?.engagementStore?.clearUser()
+                    }
                 @unknown default:
                     break
                 }
@@ -327,7 +343,7 @@ class SessionStore: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "Google sign-in failed"
+                    print("Google sign-in error:", error, (error as NSError).code, (error as NSError).domain)
                     isLoading = false
                 }
             }
@@ -397,5 +413,4 @@ struct UserProfileData: Codable {
     let city: String
     let state: String
 }
-
 

@@ -29,24 +29,24 @@ struct ExploreView: View {
         return []
     }
         
-        var body: some View {
-            VStack(spacing: 12) {
-                searchBar
-                if exploreService.isSearching {
-                    ProgressView("Searching")
-                        .padding()
-                } else if exploreService.mode == .explore && exploreService.topRatedCourses.isEmpty && exploreService.topSlopeCourses.isEmpty && exploreService.topBogeyCourses.isEmpty {
-                        ProgressView("Loading nearby courses...")
-                            .padding()
-                }
-                
-                if !exploreService.errorText.isEmpty {
-                    Text(exploreService.errorText)
-                            .foregroundColor(.red)
-                            .padding()
-                }
-                
-               
+    var body: some View {
+        VStack(spacing: 12) {
+            searchBar
+            if exploreService.isSearching {
+                ProgressView("Searching")
+                    .padding()
+            } else if exploreService.mode == .explore && exploreService.topRatedCourses.isEmpty && exploreService.topSlopeCourses.isEmpty && exploreService.topBogeyCourses.isEmpty {
+                ProgressView("Loading nearby courses...")
+                    .padding()
+            }
+            
+            if !exploreService.errorText.isEmpty {
+                Text(exploreService.errorText)
+                    .foregroundColor(.red)
+                    .padding()
+            }
+            
+            
             ScrollView {
                 if !coursesToShow.isEmpty {
                     LazyVGrid(columns: columns, spacing: 16) {
@@ -75,21 +75,26 @@ struct ExploreView: View {
         }
         .navigationTitle("Explore")
         .task {
-                locationManager.requestLocation()
-            }
-           
+            locationManager.requestLocation()
+        }
+        
         .onChange(of: locationManager.location) { _, newLocation in
             guard let loc = newLocation  else { return }
             Task {
                 await exploreService.loadDefaultExploreIfNeeded(using: loc)
             }
-               
-        }
             
+        }
+        
         .refreshable {
-            if let loc = locationManager.location {
-                await exploreService.loadDefaultExplore(using: loc)
-            }
+            guard let loc = locationManager.location else { return }
+            
+            exploreService.hasLoadedCourses = false
+            
+            await exploreService.loadDefaultExplore(
+                using: loc,
+                forceReload: true
+            )
         }
     }
     
@@ -99,7 +104,7 @@ struct ExploreView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
                 
-                TextField("Search courses or location…", text: $exploreService.query)
+                TextField("Search courses …", text: $exploreService.query)
                     .submitLabel(.search)
                     .onSubmit { exploreService.search() }
                     .autocorrectionDisabled()

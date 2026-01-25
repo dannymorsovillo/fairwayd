@@ -42,8 +42,8 @@ struct RecommendationsView: View {
                 .padding(.horizontal)
             }
         }
-        .navigationTitle("AI Based")
-        .navigationSubtitle("Recommendations For You")
+        .navigationTitle("AI Recommendations")
+        //.navigationSubtitle("Recommendations For You")
         .toolbar{
             ToolbarItem {
                 moreInfoButton
@@ -69,12 +69,11 @@ struct RecommendationsView: View {
         }
         .refreshable {
             guard let loc = locationManager.location else { return }
-            Task {
                 await recommendationService.loadRecCourses(
                     for: session.currentUser?.skillLevel ?? .midHandicap,
-                    using: loc
+                    using: loc,
+                    forceReload: true
                 )
-            }
         }
     }
     

@@ -16,10 +16,12 @@ struct WriteReviewView: View {
     let courseID: Int?
     let courseName: String?
     let accessMode: WriteReviewMode
+    let existingReview: Review?
     
-    init(courseID: Int? = nil, courseName: String? = nil) {
+    init(courseID: Int? = nil, courseName: String? = nil, existingReview: Review? = nil) {
         self.courseID = courseID
         self.courseName = courseName
+        self.existingReview = existingReview
         
         self.accessMode = courseID == nil
         ? .accessedFromCreate
@@ -42,13 +44,19 @@ struct WriteReviewView: View {
     @State private var courseIDMapped: Int? = nil
     @State private var courseSuggestions: [GolfCourse] = []
     @State private var errorMessage = ""
+    @State private var existingPhotoUrls: [String] = []
+    @FocusState private var isTextFieldFocused: Bool
     
     var body: some View {
         NavigationStack {
             Form {
-                if accessMode == .accessedFromCreate {
+                // OLD: showed course section when accessMode == .accessedFromCreate
+                // if accessMode == .accessedFromCreate {
+                // NEW: show editable course section only when creating (existingReview == nil)
+                if existingReview == nil {
                     Section(header: Text("Course Name")) {
                         TextField("Enter course name", text: $courseNameInput).bold()
+                            .focused($isTextFieldFocused)
                             .onChange(of: courseNameInput) { oldValue, newValue in
                                 Task {
                                     if !newValue.isEmpty {
@@ -65,17 +73,49 @@ struct WriteReviewView: View {
                             }
                         
                         if !courseSuggestions.isEmpty {
-                            List(courseSuggestions, id: \.id) { course in
-                                Text(course.titleText)
-                                    .onTapGesture {
-                                        courseNameInput = course.titleText
-                                        courseIDMapped = course.id
-                                        courseSuggestions = []
+                            ScrollView {
+                                VStack(spacing: 0) {
+                                    ForEach(courseSuggestions, id: \.id) { course in
+                                        HStack {
+                                            Text(course.titleText)
+                                                .foregroundColor(.primary)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 12)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            // Dismiss keyboard first
+                                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                                            
+                                            // Then update values
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                                courseNameInput = course.titleText
+                                                courseIDMapped = course.id
+                                                courseSuggestions = []
+                                            }
+                                        }
+                                        
+                                        if course.id != courseSuggestions.last?.id {
+                                            Divider()
+                                        }
                                     }
+                                }
                             }
                             .frame(height: 150)
                         }
                         
+                        Text("Date: \(date, style: .date)")
+                            .foregroundColor(.secondary)
+                            .font(.subheadline)
+                    }
+                } else {
+                    // NEW: read-only course info while editing
+                    Section(header: Text("Course")) {
+                        HStack {
+                            Text(existingReview?.courseName ?? courseName ?? "Unknown Course")
+                                .bold()
+                            Spacer()
+                        }
                         Text("Date: \(date, style: .date)")
                             .foregroundColor(.secondary)
                             .font(.subheadline)
@@ -105,7 +145,10 @@ struct WriteReviewView: View {
                         Label("Add photo", systemImage: "camera.fill")
                     }
                     
-                    if !capturedImages.isEmpty {
+                    if !existingPhotoUrls.isEmpty || !capturedImages.isEmpty {
+                        Text("\(existingPhotoUrls.count + capturedImages.count) photo(s)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(capturedImages, id: \.self) { image in
@@ -122,43 +165,66 @@ struct WriteReviewView: View {
                     }
                 }
             
-            Section(header: Text("Review")) {
-                TextEditor(text: $comment)
-                    .frame(height: 150)
-            }
-            
-            if !errorMessage.isEmpty {
-                Section {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
+                Section(header: Text("Review")) {
+                    TextEditor(text: $comment)
+                        .frame(height: 150)
                 }
-            }
-            
-            Section {
-                Button {
-                    submitReview()
-                } label: {
-                    if isSubmitting {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text("Submit Review")
-                            .frame(maxWidth: .infinity)
+                
+                if !errorMessage.isEmpty {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
                     }
                 }
-                .disabled(username.isEmpty || comment.isEmpty || isSubmitting)
+                
+                Section {
+                    Button {
+                        submitReview()
+                    } label: {
+                        if isSubmitting {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Text("Submit Review")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .disabled(username.isEmpty || comment.isEmpty || isSubmitting)
+                }
+            }
+            .navigationTitle(existingReview != nil ? "Edit Review" : "Write Review")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
             }
         }
-        .navigationTitle("Write Review")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Cancel") { dismiss() }
-            }
-        }
-    }
         .sheet(isPresented: $showCamera) {
-            CameraView(capturedImages: $capturedImages)
+            CameraView(capturedImages: $capturedImages, existingPhotoUrls: $existingPhotoUrls)
+        }
+        .onAppear{
+            if let review = existingReview {
+                username = review.username
+                rating = review.rating
+                comment = review.comment
+                
+                if let createdAt = review.createdAt{
+                    date = createdAt
+                }
+                
+                if let photoUrls = review.photoUrls {
+                    existingPhotoUrls = photoUrls
+                }
+            } else {
+                // For create-from-course-detail path, prefill course name input if provided
+                if let courseName = courseName, !courseName.isEmpty {
+                    courseNameInput = courseName
+                }
+                if let courseID = courseID {
+                    courseIDMapped = courseID
+                }
+            }
         }
     }
     
@@ -168,35 +234,52 @@ struct WriteReviewView: View {
         
         Task {
             do {
-                var uploadedPhotoUrls: [String] = []
+                var uploadedPhotoUrls: [String] = existingPhotoUrls
                 
                 if let userId = session.currentUser?.id {
                     for image in capturedImages {
-                        let url = try await reviewService.uploadPhoto(image,
-                                userId: userId
+                        let url = try await reviewService.uploadPhoto(
+                            image,
+                            userId: userId
                         )
                         uploadedPhotoUrls.append(url)
-                        }
+                    }
                 }
                 
-                let newReview = Review(
-                    id: UUID(),
-                    userId: session.currentUser?.id,
-                    username: username,
-                    rating: rating,
-                    comment: comment,
-                    courseName: courseName ?? courseNameInput,
-                    courseId: courseID,
-                    createdAt: date,
-                    photoUrls: uploadedPhotoUrls
-                )
-                
-                try await reviewService.saveReview(newReview)
+                if let existing = existingReview {
+                    let updatedReview = Review(
+                        id: existing.id, // non-optional now
+                        userId: existing.userId,
+                        username: username,
+                        rating: rating,
+                        comment: comment,
+                        courseName: existing.courseName,
+                        courseId: existing.courseId,
+                        createdAt: existing.createdAt,
+                        photoUrls: uploadedPhotoUrls.isEmpty ? nil : uploadedPhotoUrls
+                    )
+                    try await reviewService.updateReview(updatedReview)
+                        
+                } else {
+                    let newReview = Review(
+                        id: UUID(),
+                        userId: session.currentUser?.id,
+                        username: username,
+                        rating: rating,
+                        comment: comment,
+                        courseName: courseName ?? courseNameInput,
+                        courseId: courseID ?? courseIDMapped,
+                        createdAt: date,
+                        photoUrls: uploadedPhotoUrls.isEmpty ? nil : uploadedPhotoUrls
+                    )
+                    
+                    try await reviewService.saveReview(newReview)
+                }
                 
                 await MainActor.run {
                     dismiss()
                 }
-            }catch {
+            } catch {
                 await MainActor.run {
                     errorMessage = "Failed to submit review: \(error.localizedDescription)"
                     isSubmitting = false
@@ -204,11 +287,11 @@ struct WriteReviewView: View {
             }
         }
     }
-    
 }
 
 struct CameraView: View {
     @Binding var capturedImages: [UIImage]
+    @Binding var existingPhotoUrls: [String]
     @Environment(\.dismiss) var dismiss
     
     @State private var showCamera = false
@@ -216,21 +299,67 @@ struct CameraView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack (spacing: 12) {
-                        ForEach(capturedImages, id: \.self) { image in
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 150, height: 120)
-                                .cornerRadius(8)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            }
             VStack(spacing: 16) {
+                if !existingPhotoUrls.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(Array(existingPhotoUrls.enumerated()), id: \.offset) { index, urlString in
+                                ZStack(alignment: .topTrailing) {
+                                    AsyncImage(url: URL(string: urlString)) { image in
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 100, height: 100)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    } placeholder: {
+                                        ProgressView()
+                                            .frame(width: 100,   height: 100)
+                                    }
+                                    
+                                    Button(action: {
+                                        existingPhotoUrls.remove(at: index)
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.white)
+                                            .background(Circle().fill(Color.black.opacity(0.6)))
+                                    }
+                                    .padding(4)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .frame(height: 120)
+                }
+                
+                
+                if !capturedImages.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(Array(capturedImages.enumerated()), id: \.offset) { index, image in
+                                ZStack(alignment: .topTrailing) {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    
+                                    Button(action: {
+                                        capturedImages.remove(at: index)
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.white)
+                                            .background(Circle().fill(Color.black.opacity(0.6)))
+                                    }
+                                    .padding(4)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .frame(height: 120)
+                }
+                
                 Button {
                     showCamera = true
                 } label: {
@@ -242,6 +371,7 @@ struct CameraView: View {
                     .padding()
                 }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(Color.green)
                 
                 Button {
                     showPhotoLibrary = true
@@ -255,7 +385,7 @@ struct CameraView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 
-                if !capturedImages.isEmpty {
+                if !capturedImages.isEmpty || !existingPhotoUrls.isEmpty {
                     Button("Done") {
                         dismiss()
                     }
@@ -268,7 +398,7 @@ struct CameraView: View {
             CameraSelect(images: $capturedImages, sourceType: .camera)
                 .ignoresSafeArea()
         }
-        .presentationDetents([.height(200)])
+        .presentationDetents([.medium, .large])
         .sheet(isPresented: $showPhotoLibrary) {
             CameraSelect(images: $capturedImages, sourceType: .photoLibrary)
                 .ignoresSafeArea()
@@ -304,7 +434,7 @@ struct CameraSelect: UIViewControllerRepresentable {
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let selectedImage = info[.originalImage] as? UIImage {
-                    parent.images.append(selectedImage)
+                parent.images.append(selectedImage)
             }
             parent.dismiss()
         }
@@ -314,6 +444,3 @@ struct CameraSelect: UIViewControllerRepresentable {
         }
     }
 }
-
-
-

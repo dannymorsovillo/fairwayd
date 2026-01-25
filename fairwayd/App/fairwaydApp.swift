@@ -6,6 +6,7 @@
 //
 import SwiftUI
 import GoogleSignIn
+import CoreML
 
 @main
 struct fairwaydApp: App {
@@ -20,15 +21,15 @@ struct fairwaydApp: App {
     @StateObject private var recommendationService: RecommendationService
     
     init() {
-            let locationMgr = LocationManager()
-            let engageStore = EngagementStore()
-            let golfService = GolfCourseService()
-            let finder = GolfCourseFinderService(locationManager: locationMgr)
+        let locationMgr = LocationManager()
+        let engageStore = EngagementStore()
+        let golfService = GolfCourseService()
+        let finder = GolfCourseFinderService(locationManager: locationMgr)
         
-            _locationManager = StateObject(wrappedValue: locationMgr)
-            _engagementStore = StateObject(wrappedValue: engageStore)
-            _service = StateObject(wrappedValue: golfService)
-            _finderService = StateObject(wrappedValue: finder)
+        _locationManager = StateObject(wrappedValue: locationMgr)
+        _engagementStore = StateObject(wrappedValue: engageStore)
+        _service = StateObject(wrappedValue: golfService)
+        _finderService = StateObject(wrappedValue: finder)
         
         _exploreService = StateObject(wrappedValue: ExploreService(
             service: golfService,
@@ -37,24 +38,30 @@ struct fairwaydApp: App {
             locationManager: locationMgr
         ))
         
-            let model = try! fairwaydML()
-            let scorer = MLBasedCourseScorer(model: model)
-            _recommendationService = StateObject(wrappedValue: RecommendationService(
-                service: golfService,
-                finderService: finder,
-                store: engageStore,
-                locationManager: locationMgr,
-                scorer: scorer
-            ))
-           
+        // Core ML model init: use configuration and handle failures gracefully
+        let scorer: CourseScoring
+        do {
+            let config = MLModelConfiguration()
+            // Optionally: config.computeUnits = .all / .cpuAndGPU / .cpuOnly
+            let model = try fairwaydML(configuration: config)
+            scorer = MLBasedCourseScorer(model: model)
+        } catch {
+            // Fallback to rules if model fails to load
+            print("Failed to load fairwaydML model: \(error)")
+            scorer = RuleBasedCourseScorer()
         }
-    
+        
+        _recommendationService = StateObject(wrappedValue: RecommendationService(
+            service: golfService,
+            finderService: finder,
+            store: engageStore,
+            locationManager: locationMgr,
+            scorer: scorer
+        ))
+    }
     
     var body: some Scene {
         WindowGroup {
-           // #if DEBUG
-           // MLExportDebugView()
-          //  #else
             RootView()
                 .environmentObject(session)
                 .environmentObject(reviewService)
@@ -69,9 +76,7 @@ struct fairwaydApp: App {
                 }
                 .onOpenURL(perform: { url in
                     GIDSignIn.sharedInstance.handle(url)
-                }
-                )
-           // #endif
+                })
         }
     }
 }

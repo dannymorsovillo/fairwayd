@@ -83,7 +83,6 @@ import SwiftUI
                     .tint(.green)
                 }
                     
-                //Spacer()
                     
             
                 Section {

@@ -4,13 +4,14 @@
 //
 //  Created by Danny Morsovillo on 12/30/25.
 //
+
 import Foundation
 import CoreLocation
 import Supabase
 import Combine
 import CoreML
 
-// extension of skillLevel
+// MARK: - SkillLevel Extension
 extension SkillLevel {
     var estimatedHandiCap: Double {
         switch self {
@@ -22,13 +23,14 @@ extension SkillLevel {
     }
 }
 
-//for drop in ML
+// MARK: - Course Scoring
 protocol CourseScoring {
     func score(course: GolfCourse, skillLevel: SkillLevel) -> Double
 }
 
 struct MLBasedCourseScorer: CourseScoring {
     let model: fairwaydML
+
     func score(course: GolfCourse, skillLevel: SkillLevel) -> Double {
         guard let tee = course.allTees.first,
               let courseRating = tee.course_rating,
@@ -38,7 +40,7 @@ struct MLBasedCourseScorer: CourseScoring {
               let total_yards = tee.total_yards else {
             return 0.0
         }
-        
+
         let input = fairwaydMLInput(
             course_rating: courseRating,
             slope: Int64(slope),
@@ -47,55 +49,47 @@ struct MLBasedCourseScorer: CourseScoring {
             handicap: skillLevel.estimatedHandiCap,
             total_yards: Int64(total_yards)
         )
-        
-        guard let prediction = try? model.prediction(input: input) else {
-            return 0
-        }
-        
+
+        guard let prediction = try? model.prediction(input: input) else { return 0.0 }
         return prediction.expected_score_diff
     }
 }
 
-
-//fall back if models fails
 struct RuleBasedCourseScorer: CourseScoring {
-     func score(course: GolfCourse, skillLevel: SkillLevel) -> Double {
-            guard let tee = course.allTees.max(by: { ($0.course_rating ?? 0) < ($1.course_rating ?? 0) }) else {
-                return 0.0
-            }
-            
-            guard
-                let par = tee.par_total,
-                let slopeInt = tee.slope_rating else {
-                return 0.0
-            }
-            
-            let courseRating = course.bestCourseRating ?? 0.0
-            
-            let slope = Double(slopeInt)
-            let handicap = skillLevel.estimatedHandiCap
-            let expectedScore = courseRating + (handicap * (slope / 113.0))
-            
-            return abs(expectedScore - Double(par))
+    func score(course: GolfCourse, skillLevel: SkillLevel) -> Double {
+        guard let tee = course.allTees.max(by: { ($0.course_rating ?? 0) < ($1.course_rating ?? 0) }) else {
+            return 0.0
         }
+
+        guard let par = tee.par_total, let slopeInt = tee.slope_rating else { return 0.0 }
+
+        let courseRating = course.bestCourseRating ?? 0.0
+        let slope = Double(slopeInt)
+        let handicap = skillLevel.estimatedHandiCap
+        let expectedScore = courseRating + (handicap * (slope / 113.0))
+
+        return abs(expectedScore - Double(par))
+    }
 }
 
-final class RecommendationService: ObservableObject{
+// MARK: - RecommendationService
+@MainActor
+final class RecommendationService: ObservableObject {
+    // MARK: Published
     @Published var errorText = ""
     @Published var recommendedCourses: [GolfCourse] = []
-    @Published var course: GolfCourse?
-    @Published var tee: Tees?
-    
-    
-    private let supabase = SupabaseManager.shared.client
+
+    // MARK: Private
+    private var currentTask: Task<Void, Never>? = nil
     private let courseCache = CourseCache()
-    
+
     private let service: GolfCourseService
     private let finderService: GolfCourseFinderService
     private let store: EngagementStore
     private let locationManager: LocationManager
     private let scorer: CourseScoring
-    
+
+    // MARK: Init
     init(
         service: GolfCourseService,
         finderService: GolfCourseFinderService,
@@ -109,118 +103,101 @@ final class RecommendationService: ObservableObject{
         self.locationManager = locationManager
         self.scorer = scorer
     }
-    
-    
-    @MainActor
-    func loadRecCourses(for skillLevel: SkillLevel, using location: CLLocation) async {
 
-        errorText = ""
+    // MARK: Load Recommended Courses
+    func loadRecCourses(
+        for skillLevel: SkillLevel,
+        using location: CLLocation,
+        forceReload: Bool = false
+    ) {
+        // Cancel previous task
+        currentTask?.cancel()
+        currentTask = Task { [weak self] in
+            guard let self else { return }
 
-        // Cache
-        if let cachedCourses = await courseCache.get(for: location) {
-            let scoredCourses = cachedCourses.map { course -> (GolfCourse, Double) in
-                let score = scorer.score(course: course, skillLevel: skillLevel)
-                return (course, score)
+            self.errorText = ""
+
+            // Cache fast-path
+            if !forceReload, let cached = await self.courseCache.get(for: location) {
+                let scoredCourses = cached.map { course in
+                    (course, self.scorer.score(course: course, skillLevel: skillLevel))
+                }
+                self.recommendedCourses = scoredCourses.sorted { $0.1 < $1.1 }.map { $0.0 }
+                return
             }
 
-            let sortedCourses = scoredCourses.sorted { $0.1 < $1.1 }
-            recommendedCourses = sortedCourses.map { $0.0 }
-            return
-        }
+            do {
+                // Fetch nearby courses
+                let nearbyClubs = try await self.finderService.fetchNearbyCourses(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    miles: 50
+                )
 
-        do {
-            // fetch nearby clubs once
-            let nearbyClubs = try await finderService.fetchNearbyCourses(
-                latitude: location.coordinate.latitude,
-                longitude: location.coordinate.longitude,
-                miles: 50
-            )
+                let nearbyCourses = self.finderService.mapNearbyClubsToGolfCourses(nearbyClubs)
+                let coursesToProcess = Array(nearbyCourses.prefix(100))
 
-            let nearbyCoursesWithContact = finderService.mapNearbyClubsToGolfCourses(nearbyClubs)
-            let coursesToProcess = Array(nearbyCoursesWithContact.prefix(100))
+                // Match courses concurrently
+                let matchedCourses = await withTaskGroup(of: GolfCourse?.self) { group -> [GolfCourse] in
+                    var results: [GolfCourse] = []
 
-            //  match courses
-            let matchedCourses = await withTaskGroup(of: GolfCourse?.self) { group in
-                var results: [GolfCourse] = []
+                    for (index, nearbyCourse) in coursesToProcess.enumerated() {
+                        group.addTask {
+                            try? await Task.sleep(nanoseconds: UInt64(index * 100_000_000))
 
-                for (index, nearbyCourse) in coursesToProcess.enumerated() {
-                    group.addTask {
-                        try? await Task.sleep(nanoseconds: UInt64(index * 100_000_000))
+                            do {
+                                let searchResults = try await self.service.searchCourses(query: nearbyCourse.course_name ?? "")
+                                let detailedCourse = searchResults.first(where: {
+                                    normalizeCourseName($0.titleText) == normalizeCourseName(nearbyCourse.titleText)
+                                })
 
-                        do {
-                            let searchResults = try await self.service.searchCourses(
-                                query: nearbyCourse.course_name ?? ""
-                            )
+                                guard let course = detailedCourse,
+                                      let lat = course.location?.latitude,
+                                      let lon = course.location?.longitude else { return nil }
 
-                            let detailedCourse = searchResults.first(where: {
-                                normalizeCourseName($0.titleText) ==
-                                normalizeCourseName(nearbyCourse.titleText)
-                            })
+                                let distanceMiles = location.distance(from: CLLocation(latitude: lat, longitude: lon)) / 1609.34
+                                return distanceMiles <= 50 ? course : nil
 
-                            guard let course = detailedCourse,
-                                  let lat = course.location?.latitude,
-                                  let lon = course.location?.longitude else {
+                            } catch {
+                                print("Search error for \(nearbyCourse.titleText):", error)
                                 return nil
                             }
-
-                            let courseLocation = CLLocation(latitude: lat, longitude: lon)
-                            let distanceMiles = location.distance(from: courseLocation) / 1609.34
-                            guard distanceMiles <= 50 else { return nil }
-
-                            return course
-                        } catch {
-                            print("Search error for \(nearbyCourse.titleText):", error)
-                            return nil
                         }
                     }
-                }
 
-                for await result in group {
-                    if let course = result {
-                        results.append(course)
+                    for await result in group {
+                        if let course = result { results.append(course) }
                     }
+                    return results
                 }
 
-                return results
-            }
+                // Enrich concurrently
+                let enrichedCourses = await withTaskGroup(of: GolfCourse.self) { group -> [GolfCourse] in
+                    var enriched: [GolfCourse] = []
 
-            let enrichedCourses = await withTaskGroup(of: GolfCourse.self) { group in
-                var enriched: [GolfCourse] = []
-
-                for course in matchedCourses {
-                    group.addTask {
-                        await self.finderService.enrichCourseWContactInfo(course, nearbyCourses: nearbyCoursesWithContact)
+                    for course in matchedCourses {
+                        group.addTask {
+                            await self.finderService.enrichCourseWContactInfo(course, nearbyCourses: nearbyCourses)
+                        }
                     }
+
+                    for await course in group { enriched.append(course) }
+                    return enriched
                 }
 
-                for await course in group {
-                    enriched.append(course)
+                // Cache + Score
+                await self.courseCache.set(enrichedCourses, for: location)
+                let scoredCourses = enrichedCourses.map { course in
+                    (course, self.scorer.score(course: course, skillLevel: skillLevel))
                 }
+                self.recommendedCourses = scoredCourses.sorted { $0.1 < $1.1 }.map { $0.0 }
 
-                return enriched
+            } catch is CancellationError {
+                print("Recommendation load task cancelled — ignoring")
+            } catch {
+                self.errorText = "Failed to fetch nearby courses: \(error.localizedDescription)"
             }
-
-
-            // cache
-            await courseCache.set(enrichedCourses, for: location)
-
-            // score
-            let scoredCourses = enrichedCourses.map { course -> (GolfCourse, Double) in
-                let score = scorer.score(course: course, skillLevel: skillLevel)
-                return (course, score)
-            }
-
-            // rank
-            let sortedCourses = scoredCourses.sorted { $0.1 < $1.1 }
-            recommendedCourses = sortedCourses.map { $0.0 }
-
-        } catch {
-            errorText = "Failed to fetch nearby courses: \(error.localizedDescription)"
         }
     }
-
 }
 
-
-        
-    

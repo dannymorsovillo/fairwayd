@@ -18,7 +18,7 @@ struct ReviewsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            LazyVStack(spacing: 16) {
                 if isLoading {
                     ProgressView("Loading reviews…")
                         .frame(maxWidth: .infinity)
@@ -140,13 +140,19 @@ struct ReviewsView: View {
 
 
 struct LeaveReviewTabView: View {
-    @StateObject private var reviewService = ReviewService()
+    @EnvironmentObject var reviewService: ReviewService
     @State private var isLoading = false
     @State private var errorText = ""
     @State private var showWriteReview = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var selectedImage : Image? = nil
-
+    // OLD: had showEditReview flag and optional selectedReview
+    // @State private var showEditReview = false
+    // @State private var selectedReview: Review?
+    // NEW: keep only selectedReview; use item-based .sheet
+    @State private var showDeleteAlert = false
+    @State private var selectedReview: Review?
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -165,18 +171,38 @@ struct LeaveReviewTabView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                     } else {
-                        ForEach(reviewService.userReviews, id: \.id!) { review in
+                        ForEach(reviewService.userReviews, id: \.id) { review in
                             VStack(alignment: .leading, spacing: 8) {
-                                HStack {
+                                HStack(alignment: .top) {
                                     Text(review.username)
                                         .bold()
+
                                     Spacer()
-                                    if let date = review.createdAt {
-                                        Text(date, style: .date)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                    VStack {
+                                        if let date = review.createdAt {
+                                            Text(date, style: .date)
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                            
+                                        Spacer()
+                                        HStack(spacing: 12) {
+                                            Button(action: {
+                                                selectedReview = review
+                                            }) {
+                                                Image(systemName: "pencil")
+                                                    .foregroundColor(.blue)
+                                            }
+                                            
+                                            Button(action: {
+                                                selectedReview = review
+                                                showDeleteAlert = true
+                                            }) {
+                                                Image(systemName: "trash")
+                                                    .foregroundColor(.red)
+                                            }
+                                        }
                                     }
-                                    
                                 }
                                 
                                 HStack(spacing: 2) {
@@ -198,35 +224,35 @@ struct LeaveReviewTabView: View {
                                 
                                 
                                 if let photoUrls = review.photoUrls, !photoUrls.isEmpty {
-                                            ScrollView(.horizontal, showsIndicators: false) {
-                                                HStack(spacing: 12) {
-                                                    ForEach(photoUrls, id: \.self) { urlString in
-                                                        if let url = URL(string: urlString) {
-                                                            AsyncImage(url: url) { phase in
-                                                                switch phase {
-                                                                case .empty:
-                                                                    ProgressView()
-                                                                        .frame(width: 150, height: 120)
-                                                                case .success(let image):
-                                                                    image
-                                                                        .resizable()
-                                                                        .scaledToFill()
-                                                                        .frame(width: 150, height: 120)
-                                                                        .cornerRadius(8)
-                                                                case .failure:
-                                                                    Image(systemName: "photo")
-                                                                        .frame(width: 150, height: 120)
-                                                                @unknown default:
-                                                                    EmptyView()
-                                                                }
-                                                            }
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(photoUrls, id: \.self) { urlString in
+                                                if let url = URL(string: urlString) {
+                                                    AsyncImage(url: url) { phase in
+                                                        switch phase {
+                                                        case .empty:
+                                                            ProgressView()
+                                                                .frame(width: 150, height: 120)
+                                                        case .success(let image):
+                                                            image
+                                                                .resizable()
+                                                                .scaledToFill()
+                                                                .frame(width: 150, height: 120)
+                                                                .cornerRadius(8)
+                                                        case .failure:
+                                                            Image(systemName: "photo")
+                                                                .frame(width: 150, height: 120)
+                                                        @unknown default:
+                                                            EmptyView()
                                                         }
                                                     }
                                                 }
                                             }
-                                            .frame(height: 130)
                                         }
                                     }
+                                    .frame(height: 130)
+                                }
+                            }
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(12)
@@ -254,11 +280,32 @@ struct LeaveReviewTabView: View {
                 await loadUserReviews()
             }
             .sheet(isPresented: $showWriteReview) {
-                Task {
-                    await loadUserReviews()
-                }
             } content: {
                 WriteReviewView()
+            }
+            .sheet(item: $selectedReview) { review in
+                WriteReviewView(
+                    courseID: review.courseId,
+                    courseName: review.courseName,
+                    existingReview: review
+                )
+            }
+            .alert("Delete Review", isPresented: $showDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    if let review = selectedReview {
+                        Task {
+                            do {
+                                try await reviewService.deleteReview(review)
+                                await loadUserReviews()
+                            } catch {
+                                errorText = "Failed to delete review. Please try again later."
+                            }
+                        }
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to delete this review?")
             }
         }
     }
@@ -277,4 +324,3 @@ struct LeaveReviewTabView: View {
         }
     }
 }
-
