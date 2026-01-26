@@ -45,7 +45,7 @@ struct WriteReviewView: View {
     @State private var courseSuggestions: [GolfCourse] = []
     @State private var errorMessage = ""
     @State private var existingPhotoUrls: [String] = []
-    @FocusState private var isTextFieldFocused: Bool
+    @State private var isSelectingSuggestion = false
     
     var body: some View {
         NavigationStack {
@@ -53,8 +53,10 @@ struct WriteReviewView: View {
                 if existingReview == nil {
                     Section(header: Text("Course Name")) {
                         TextField("Enter course name", text: $courseNameInput).bold()
-                            .focused($isTextFieldFocused)
                             .onChange(of: courseNameInput) { oldValue, newValue in
+                                
+                                if isSelectingSuggestion { return }
+                                    
                                 Task {
                                     if !newValue.isEmpty {
                                         do {
@@ -81,15 +83,10 @@ struct WriteReviewView: View {
                                         .padding(.vertical, 12)
                                         .contentShape(Rectangle())
                                         .onTapGesture {
-                                            // Dismiss keyboard first
-                                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                                            
-                                            // Then update values
-                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                                isSelectingSuggestion = true
                                                 courseNameInput = course.titleText
                                                 courseIDMapped = course.id
                                                 courseSuggestions = []
-                                            }
                                         }
                                         
                                         if course.id != courseSuggestions.last?.id {
@@ -430,11 +427,13 @@ struct CameraView: View {
         .sheet(isPresented: $showCamera) {
             CameraSelect(images: $capturedImages, sourceType: .camera)
                 .ignoresSafeArea()
+                .padding()
         }
         .presentationDetents([.medium, .large])
         .sheet(isPresented: $showPhotoLibrary) {
             CameraSelect(images: $capturedImages, sourceType: .photoLibrary)
                 .ignoresSafeArea()
+                .padding()
         }
     }
 }

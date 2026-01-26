@@ -61,7 +61,7 @@ struct ReviewsView: View {
                             
                             if let photoUrls = review.photoUrls {
                                 ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
+                                    LazyHStack(spacing: 12) {
                                         ForEach(photoUrls, id: \.self) { urlString in
                                             if let url = URL(string: urlString) {
                                                 AsyncImage(url: url) { imagePhase in
@@ -70,14 +70,14 @@ struct ReviewsView: View {
                                                         image
                                                             .resizable()
                                                             .scaledToFill()
-                                                            .frame(width: 150, height: 120)
+                                                            .frame(width: 100, height: 100)
                                                             .cornerRadius(8)
                                                     case .empty:
                                                         ProgressView()
-                                                            .frame(width: 150, height: 120)
+                                                            .frame(width: 100, height: 100)
                                                     case .failure:
                                                         Image(systemName: "photo")
-                                                            .frame(width: 150, height: 120)
+                                                            .frame(width: 100, height: 100)
                                                     @unknown default:
                                                         EmptyView()
                                                     }
@@ -185,7 +185,7 @@ struct LeaveReviewTabView: View {
                                         }
                                             
                                         Spacer()
-                                        HStack(spacing: 12) {
+                                        HStack(spacing: 20) {
                                             Button(action: {
                                                 reviewToEdit = review
                                             }) {
@@ -215,7 +215,6 @@ struct LeaveReviewTabView: View {
                                 Text(review.comment)
                                     .font(.body)
                                     .foregroundColor(.primary)
-                                    .fixedSize(horizontal: false, vertical: true)
                                 
                                 Text("Course: \(review.courseName)")
                                     .font(.caption)
@@ -223,23 +222,23 @@ struct LeaveReviewTabView: View {
                                 
                                 if let photoUrls = review.photoUrls, !photoUrls.isEmpty {
                                     ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 12) {
+                                        LazyHStack(spacing: 12) {
                                             ForEach(photoUrls, id: \.self) { urlString in
                                                 if let url = URL(string: urlString) {
                                                     AsyncImage(url: url) { phase in
                                                         switch phase {
                                                         case .empty:
                                                             ProgressView()
-                                                                .frame(width: 150, height: 120)
+                                                                .frame(width: 100, height: 120)
                                                         case .success(let image):
                                                             image
                                                                 .resizable()
                                                                 .scaledToFill()
-                                                                .frame(width: 150, height: 120)
+                                                                .frame(width: 100, height: 100)
                                                                 .cornerRadius(8)
                                                         case .failure:
                                                             Image(systemName: "photo")
-                                                                .frame(width: 150, height: 120)
+                                                                .frame(width: 100, height: 100)
                                                         @unknown default:
                                                             EmptyView()
                                                         }
@@ -248,7 +247,7 @@ struct LeaveReviewTabView: View {
                                             }
                                         }
                                     }
-                                    .frame(height: 130)
+                                    .frame(height: 100)
                                 }
                             }
                             .padding()
@@ -316,6 +315,7 @@ struct LeaveReviewTabView: View {
         }
     }
 
+    // note to increase peforance of this function on refresh
     private func loadUserReviews() async {
         guard session.isAuthenticated else {
             await MainActor.run {
@@ -336,4 +336,66 @@ struct LeaveReviewTabView: View {
             }
         }
     }
+}
+#Preview("Leave Review Tab - With Reviews") {
+    LeaveReviewTabView()
+        .environmentObject({
+            let service = ReviewService()
+            service.skipNetWorkCalls = true
+            let currentUserId = UUID()
+            service.userReviews = [
+                Review(
+                    id: UUID(),
+                    userId: currentUserId,
+                    username: "Current User",
+                    rating: 5,
+                    comment: "This is my favorite course! The scenery is unmatched and every hole presents a unique challenge.",
+                    courseName: "Pebble Beach Golf Links",
+                    courseId: 1,
+                    createdAt: Date(),
+                    photoUrls: ["https://picsum.photos/200/200", "https://picsum.photos/200/201"]
+                ),
+                Review(
+                    id: UUID(),
+                    userId: currentUserId,
+                    username: "Current User",
+                    rating: 5,
+                    comment: "Once in a lifetime experience. The course is pristine.",
+                    courseName: "Augusta National",
+                    courseId: 2,
+                    createdAt: Date().addingTimeInterval(-172800),
+                    photoUrls: nil
+                )
+            ]
+            return service
+        }())
+        .environmentObject({
+            let session = SessionStore()
+            session.isAuthenticated = true
+            return session
+        }())
+}
+
+#Preview("Leave Review Tab - Empty") {
+    LeaveReviewTabView()
+        .environmentObject({
+            let service = ReviewService()
+            service.skipNetWorkCalls = true
+            return service
+        }())
+        .environmentObject({
+            let session = SessionStore()
+            session.isAuthenticated = true
+            return session
+        }())
+}
+
+#Preview("Leave Review Tab - Not Authenticated") {
+    LeaveReviewTabView()
+        .environmentObject({
+            let service = ReviewService()
+            service.skipNetWorkCalls = true
+            return service
+        }())
+        .environmentObject(SessionStore())
 }

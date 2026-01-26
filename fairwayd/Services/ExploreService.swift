@@ -83,11 +83,13 @@ final class ExploreService: ObservableObject {
                 // Enrich courses concurrently
                 let enrichedCourses = await withTaskGroup(of: GolfCourse.self) { group -> [GolfCourse] in
                     var enriched: [GolfCourse] = []
+                    
                     for course in courses {
                         group.addTask {
                             await self.finderService.enrichCourseWContactInfo(course, nearbyCourses: nearbyCourses)
                         }
                     }
+                    
                     for await course in group { enriched.append(course) }
                     return enriched
                 }
@@ -148,9 +150,11 @@ final class ExploreService: ObservableObject {
                 let coursesToProcess = Array(nearbyCourses.prefix(50))
                 let matchedCourses = await withTaskGroup(of: GolfCourse?.self) { group -> [GolfCourse] in
                     var results: [GolfCourse] = []
+                    
                     for (index, nearbyCourse) in coursesToProcess.enumerated() {
                         group.addTask {
                             try? await Task.sleep(nanoseconds: UInt64(index * 100_000_000))
+                            
                             do {
                                 let searchResults = try await self.service.searchCourses(query: nearbyCourse.course_name ?? "")
                                 return searchResults.first(where: {
@@ -164,6 +168,7 @@ final class ExploreService: ObservableObject {
                             }
                         }
                     }
+                    
                     for await result in group { if let course = result { results.append(course) } }
                     return results
                 }

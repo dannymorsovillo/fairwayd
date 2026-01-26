@@ -15,9 +15,7 @@ struct MainView: View {
     @EnvironmentObject var exploreService: ExploreService
     @EnvironmentObject var recommendationService: RecommendationService
     
-    @State private var showWriteReview = false
     
-
     var body: some View {
         TabView {
             NavigationStack {

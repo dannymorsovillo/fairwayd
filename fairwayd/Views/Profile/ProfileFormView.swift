@@ -106,7 +106,6 @@ struct ProfileFormView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear {
-            // Load existing skill level if in edit mode
             if mode == .edit, let skillLevel = session.currentUser?.skillLevel {
                 selectedSkillLevel = skillLevel
             }
@@ -124,6 +123,7 @@ struct ProfileFormView: View {
                     isLoading = false
                 }
             } catch {
+                
                 await MainActor.run {
                     isLoading = false
                     errorMessage = error.localizedDescription

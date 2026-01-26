@@ -62,6 +62,7 @@ final class GolfCourseFinderService: ObservableObject {
     
     func mapNearbyClubsToGolfCourses(_ clubs: [NearbyClub]) -> [GolfCourse] {
         var courses: [GolfCourse] = []
+        
         for club in clubs {
             
             for course in club.golf_courses {

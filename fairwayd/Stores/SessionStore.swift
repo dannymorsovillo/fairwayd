@@ -22,7 +22,6 @@ class SessionStore: ObservableObject {
     }
     
     // MARK: - Session Management
-    
     private func checkSession() async {
         do {
             let session = try await supabase.auth.session
@@ -60,14 +59,12 @@ class SessionStore: ObservableObject {
     }
     
     // MARK: - User State Management
-    
     @MainActor
     private func updateUserState(from session: Session) async {
         let userId = session.user.id
         let email = session.user.email ?? ""
         let username = session.user.userMetadata["username"]?.stringValue
         
-        // Load full profile
         let profileData = await loadProfile(userId: userId)
         
         // Update state
@@ -98,7 +95,6 @@ class SessionStore: ObservableObject {
     }
     
     // MARK: - Profile Loading
-    
     private func loadProfile(userId: UUID) async -> ProfileData? {
         do {
             struct ProfileResponse: Codable {
@@ -129,7 +125,6 @@ class SessionStore: ObservableObject {
     }
     
     // MARK: - Authentication Actions
-    
     func signUp(email: String, password: String, confirmPassword: String, username: String? = nil) {
         let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
