@@ -7,18 +7,22 @@
 
 import SwiftUI
 
+enum AuthMode {
+    case landing
+    case login
+    case signup
+}
+
 struct AuthLandingView: View {
     @Binding var mode: AuthMode
     
     var body: some View {
         ZStack {
-            // Full background
             Color.green
             
             VStack(spacing: 24) {
                 Spacer()
                 
-              
                 Text("fairwayd")
                     .font(.largeTitle)
                     .bold()
@@ -30,9 +34,7 @@ struct AuthLandingView: View {
                
                 VStack(spacing: 16) {
                     Button {
-                        withAnimation {
                             mode = .login
-                        }
                     } label: {
                         Text("Log In")
                             .font(.headline)
@@ -44,9 +46,7 @@ struct AuthLandingView: View {
                     .foregroundColor(.green)
                     
                     Button {
-                        withAnimation {
                             mode = .signup
-                        }
                     } label: {
                         Text("Sign Up")
                             .font(.headline)

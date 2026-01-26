@@ -19,7 +19,7 @@ import SwiftUI
                             Text("Email")
                             Spacer()
                             Text(user.email)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         
                         if let username = user.username {
@@ -27,7 +27,7 @@ import SwiftUI
                                 Text("Username")
                                 Spacer()
                                 Text(username)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -41,7 +41,7 @@ import SwiftUI
                                 Text("Home Course")
                                 Spacer()
                                 Text(homeCourse)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         
@@ -50,7 +50,7 @@ import SwiftUI
                                 Text("Location")
                                 Spacer()
                                 Text("\(city), \(state)")
-                                    .foregroundStyle(Color.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         
@@ -59,7 +59,7 @@ import SwiftUI
                                 Text("Skill Level")
                                 Spacer()
                                 Text(skillLevel.rawValue)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }

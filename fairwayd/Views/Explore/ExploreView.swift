@@ -81,7 +81,7 @@ struct ExploreView: View {
         .onChange(of: locationManager.location) { _, newLocation in
             guard let loc = newLocation  else { return }
             Task {
-                await exploreService.loadDefaultExploreIfNeeded(using: loc)
+                 exploreService.loadDefaultExploreIfNeeded(using: loc)
             }
             
         }
@@ -91,7 +91,7 @@ struct ExploreView: View {
             
             exploreService.hasLoadedCourses = false
             
-            await exploreService.loadDefaultExplore(
+             exploreService.loadDefaultExplore(
                 using: loc,
                 forceReload: true
             )

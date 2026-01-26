@@ -50,9 +50,6 @@ struct WriteReviewView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // OLD: showed course section when accessMode == .accessedFromCreate
-                // if accessMode == .accessedFromCreate {
-                // NEW: show editable course section only when creating (existingReview == nil)
                 if existingReview == nil {
                     Section(header: Text("Course Name")) {
                         TextField("Enter course name", text: $courseNameInput).bold()
@@ -109,7 +106,6 @@ struct WriteReviewView: View {
                             .font(.subheadline)
                     }
                 } else {
-                    // NEW: read-only course info while editing
                     Section(header: Text("Course")) {
                         HStack {
                             Text(existingReview?.courseName ?? courseName ?? "Unknown Course")
@@ -142,26 +138,61 @@ struct WriteReviewView: View {
                     Button {
                         showCamera = true
                     } label: {
-                        Label("Add photo", systemImage: "camera.fill")
+                        HStack {
+                            Image(systemName: "camera.fill")
+                            Text("Add photo")
+                            Spacer()
+                        }
+                        .padding(.vertical, 6)
+                        .foregroundStyle(Color.green)
                     }
+                    .buttonStyle(.borderless)
                     
                     if !existingPhotoUrls.isEmpty || !capturedImages.isEmpty {
                         Text("\(existingPhotoUrls.count + capturedImages.count) photo(s)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
+                                // Existing photo URLs (thumbnails)
+                                ForEach(existingPhotoUrls, id: \.self) { urlString in
+                                    if let url = URL(string: urlString) {
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .empty:
+                                                ProgressView()
+                                                    .frame(width: 100, height: 100)
+                                            case .success(let image):
+                                                image
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 100, height: 100)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            case .failure:
+                                                Image(systemName: "photo")
+                                                    .frame(width: 100, height: 100)
+                                                    .background(Color(.systemGray5))
+                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            @unknown default:
+                                                EmptyView()
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Newly captured images (session-only)
                                 ForEach(capturedImages, id: \.self) { image in
                                     Image(uiImage: image)
                                         .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 120, height: 90)
-                                        .clipped()
-                                        .cornerRadius(8)
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
                                 }
                             }
                             .padding(.vertical, 4)
                         }
+                        .frame(height: 100)
                     }
                 }
             
@@ -217,7 +248,6 @@ struct WriteReviewView: View {
                     existingPhotoUrls = photoUrls
                 }
             } else {
-                // For create-from-course-detail path, prefill course name input if provided
                 if let courseName = courseName, !courseName.isEmpty {
                     courseNameInput = courseName
                 }
@@ -369,9 +399,10 @@ struct CameraView: View {
                         Spacer()
                     }
                     .padding()
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.borderedProminent)
-                .foregroundStyle(Color.green)
                 
                 Button {
                     showPhotoLibrary = true
@@ -382,6 +413,8 @@ struct CameraView: View {
                         Spacer()
                     }
                     .padding()
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.borderedProminent)
                 
@@ -389,7 +422,7 @@ struct CameraView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                 }
             }
             .padding()

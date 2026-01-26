@@ -58,7 +58,7 @@ struct RecommendationsView: View {
                 !hasLoadedCourses
             else { return }
             Task {
-            await recommendationService.loadRecCourses(
+                recommendationService.loadRecCourses(
                     for: session.currentUser?.skillLevel ?? .midHandicap,
                     using: loc
                 )
@@ -69,7 +69,7 @@ struct RecommendationsView: View {
         }
         .refreshable {
             guard let loc = locationManager.location else { return }
-                await recommendationService.loadRecCourses(
+                    recommendationService.loadRecCourses(
                     for: session.currentUser?.skillLevel ?? .midHandicap,
                     using: loc,
                     forceReload: true

@@ -22,10 +22,8 @@ struct SignUpView: View {
         VStack(spacing: 20) {
             HStack {
                 Button("Back") {
-                    withAnimation {
-                        mode = .landing
-                        session.errorMessage = nil
-                    }
+                    mode = .landing
+                    session.errorMessage = nil
                 }
                 .tint(.green)
                 Spacer()
@@ -78,7 +76,7 @@ struct SignUpView: View {
                 
                 Button{
                     session.signUp(
-                        email: email,
+                        email: email.trimmingCharacters(in: .whitespacesAndNewlines),
                         password: password,
                         confirmPassword: confirmPassword
                     )

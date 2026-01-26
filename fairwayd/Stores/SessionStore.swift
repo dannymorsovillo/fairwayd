@@ -1,8 +1,3 @@
-//
-//  SessionStore.swift
-//  fairwayd
-//
-
 import Foundation
 import Supabase
 import GoogleSignIn
@@ -14,10 +9,9 @@ class SessionStore: ObservableObject {
     @Published var errorMessage: String?
     @Published var isLoading = false
     @Published var needsProfileSetup = false
-    @Published var isNewUser = false
+    @Published var needsUsername = false
     
     private let supabase = SupabaseManager.shared.client
-    
     var engagementStore: EngagementStore?
     
     init() {
@@ -27,74 +21,37 @@ class SessionStore: ObservableObject {
         }
     }
     
+    // MARK: - Session Management
+    
     private func checkSession() async {
         do {
             let session = try await supabase.auth.session
-           
-            await MainActor.run {
-                isAuthenticated = true
-                isNewUser = false
-                currentUser = User(
-                    id: session.user.id,
-                    email: session.user.email ?? "",
-                    username: session.user.userMetadata["username"]?.stringValue
-                )
-            }
-            await loadFullProfile()
-            await checkProfileCompletion()
-            await engagementStore?.setUser(session.user.id)
+            await updateUserState(from: session)
         } catch {
             print("checkSession failed: \(error)")
-            await MainActor.run {
-                isAuthenticated = false
-                currentUser = nil
-            }
+             clearUserState()
         }
     }
 
     private func observeAuthChanges() async {
         await supabase.auth.onAuthStateChange { [weak self] event, session in
+            guard let self else { return }
+            
             Task { @MainActor in
                 switch event {
-                case .signedIn, .tokenRefreshed, .userUpdated, .mfaChallengeVerified:
+                case .signedIn, .tokenRefreshed, .userUpdated, .initialSession:
                     if let session = session {
-                        self?.isAuthenticated = true
-                        self?.currentUser = User(
-                            id: session.user.id,
-                            email: session.user.email ?? "",
-                            username: session.user.userMetadata["username"]?.stringValue
-                        )
-                        await self?.checkProfileCompletion()
-                        await self?.engagementStore?.setUser(session.user.id)
-                    }
-                case .signedOut:
-                    self?.isAuthenticated = false
-                    self?.currentUser = nil
-                    self?.needsProfileSetup = false
-                    self?.engagementStore?.clearUser()
-                case .passwordRecovery:
-                    break
-                case .userDeleted:
-                    self?.isAuthenticated = false
-                    self?.currentUser = nil
-                    self?.needsProfileSetup = false
-                    self?.engagementStore?.clearUser()
-                case .initialSession:
-                    if let session = session {
-                        self?.isAuthenticated = true
-                        self?.currentUser = User(
-                            id: session.user.id,
-                            email: session.user.email ?? "",
-                            username: session.user.userMetadata["username"]?.stringValue
-                        )
-                        await self?.checkProfileCompletion()
-                        await self?.engagementStore?.setUser(session.user.id)
+                        await self.updateUserState(from: session)
                     } else {
-                        self?.isAuthenticated = false
-                        self?.currentUser = nil
-                        self?.needsProfileSetup = false
-                        self?.engagementStore?.clearUser()
+                        self.clearUserState()
                     }
+                    
+                case .signedOut, .userDeleted:
+                     self.clearUserState()
+                    
+                case .passwordRecovery, .mfaChallengeVerified:
+                    break
+                    
                 @unknown default:
                     break
                 }
@@ -102,18 +59,56 @@ class SessionStore: ObservableObject {
         }
     }
     
-    private func loadFullProfile() async {
+    // MARK: - User State Management
+    
+    @MainActor
+    private func updateUserState(from session: Session) async {
+        let userId = session.user.id
+        let email = session.user.email ?? ""
+        let username = session.user.userMetadata["username"]?.stringValue
+        
+        // Load full profile
+        let profileData = await loadProfile(userId: userId)
+        
+        // Update state
+        currentUser = User(
+            id: userId,
+            email: email,
+            username: username,
+            skillLevel: profileData?.skillLevel,
+            homeCourse: profileData?.homeCourse,
+            city: profileData?.city,
+            state: profileData?.state
+        )
+        
+        isAuthenticated = true
+        needsUsername = (username?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        needsProfileSetup = profileData?.skillLevel == nil
+        
+        await engagementStore?.setUser(userId)
+    }
+    
+    @MainActor
+    private func clearUserState() {
+        isAuthenticated = false
+        currentUser = nil
+        needsProfileSetup = false
+        needsUsername = false
+        engagementStore?.clearUser()
+    }
+    
+    // MARK: - Profile Loading
+    
+    private func loadProfile(userId: UUID) async -> ProfileData? {
         do {
-            let userId = try await supabase.auth.session.user.id
-            
-            struct ProfileData: Codable {
+            struct ProfileResponse: Codable {
                 let skill_level: String?
                 let home_course: String?
                 let city: String?
                 let state: String?
             }
             
-            let profile: ProfileData = try await supabase
+            let profile: ProfileResponse = try await supabase
                 .from("profiles")
                 .select()
                 .eq("id", value: userId.uuidString)
@@ -121,85 +116,33 @@ class SessionStore: ObservableObject {
                 .execute()
                 .value
             
-            await MainActor.run {
-                var skillLevel: SkillLevel? = nil
-                if let skillLevelString = profile.skill_level {
-                    skillLevel = SkillLevel(rawValue: skillLevelString)
-                }
-                
-                currentUser = User(
-                    id: userId,
-                    email: currentUser?.email ?? "",
-                    username: currentUser?.username,
-                    skillLevel: skillLevel,
-                    homeCourse: profile.home_course,
-                    city: profile.city,
-                    state: profile.state
-                )
-            }
+            return ProfileData(
+                skillLevel: profile.skill_level.flatMap(SkillLevel.init),
+                homeCourse: profile.home_course,
+                city: profile.city,
+                state: profile.state
+            )
         } catch {
-            print("Failed to load full profile: \(error)")
+            print("Failed to load profile: \(error)")
+            return nil
         }
     }
     
-    private func checkProfileCompletion() async {
-        do {
-            let userId = try await supabase.auth.session.user.id
-            
-            struct ProfileCheck: Codable {
-                let skill_level: String?
-                let home_course: String?
-                let city: String?
-                let state: String?
-            }
-            
-            let profile: ProfileCheck = try await supabase
-                .from("profiles")
-                .select()
-                .eq("id", value: userId.uuidString)
-                .single()
-                .execute()
-                .value
-            
-            await MainActor.run {
-                needsProfileSetup = profile.skill_level == nil ||
-                                   profile.home_course == nil ||
-                                   profile.city == nil ||
-                                   profile.state == nil
-            }
-        } catch {
-            await MainActor.run {
-                needsProfileSetup = true
-            }
-        }
-    }
+    // MARK: - Authentication Actions
     
     func signUp(email: String, password: String, confirmPassword: String, username: String? = nil) {
-        guard !email.isEmpty, !password.isEmpty else {
-            errorMessage = "Please fill in all fields"
-            return
-        }
-        
-        guard password == confirmPassword else {
-            errorMessage = "Passwords don't match"
-            return
-        }
-        
-        guard password.count >= 8 else {
-            errorMessage = "Password must be at least 8 characters"
-            return
-        }
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+            guard validateSignUp(email: cleanEmail, password: password, confirmPassword: confirmPassword) else {
+                return
+            }
         
         isLoading = true
         errorMessage = nil
         
         Task {
             do {
-                var metadata: [String: AnyJSON]? = nil
-                if let username = username {
-                    metadata = ["username": .string(username)]
-                }
-                
+                let metadata = username.map { ["username": AnyJSON.string($0)] }
                 let response = try await supabase.auth.signUp(
                     email: email,
                     password: password,
@@ -208,15 +151,8 @@ class SessionStore: ObservableObject {
                 
                 await MainActor.run {
                     isLoading = false
-                    if let session = response.session {
-                        isAuthenticated = true
-                        needsProfileSetup = true
-                        isNewUser = true
-                        currentUser = User(
-                            id: session.user.id,
-                            email: session.user.email ?? "",
-                            username: metadata?["username"]?.stringValue
-                        )
+                    if response.session != nil {
+                        // Auth state change will handle the rest
                     } else {
                         errorMessage = "Please check your email to confirm your account"
                     }
@@ -241,22 +177,10 @@ class SessionStore: ObservableObject {
         
         Task {
             do {
-                let response = try await supabase.auth.signIn(
-                    email: email,
-                    password: password
-                )
-                
+                _ = try await supabase.auth.signIn(email: email, password: password)
                 await MainActor.run {
                     isLoading = false
-                    isAuthenticated = true
-                    isNewUser = false
-                    currentUser = User(
-                        id: response.user.id,
-                        email: response.user.email ?? "",
-                        username: response.user.userMetadata["username"]?.stringValue
-                    )
                 }
-                await checkProfileCompletion()
             } catch {
                 await MainActor.run {
                     isLoading = false
@@ -270,12 +194,8 @@ class SessionStore: ObservableObject {
         Task {
             do {
                 try await supabase.auth.signOut()
-                await MainActor.run {
-                    isAuthenticated = false
-                    currentUser = nil
-                    needsProfileSetup = false
-                }
-                engagementStore?.clearUser()
+                // Auth listener will handle state clearing, but force it just in case
+                 clearUserState()
             } catch {
                 await MainActor.run {
                     errorMessage = error.localizedDescription
@@ -283,38 +203,13 @@ class SessionStore: ObservableObject {
             }
         }
     }
-    
-    func resetPassword(email: String) {
-        guard !email.isEmpty else {
-            errorMessage = "Please enter your email"
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        
-        Task {
-            do {
-                try await supabase.auth.resetPasswordForEmail(email)
-                
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = "Password reset email sent!"
-                }
-            } catch {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-    
     
     func signInWithGoogle() {
         Task {
-            isLoading = true
-            errorMessage = nil
+            await MainActor.run {
+                isLoading = true
+                errorMessage = nil
+            }
             
             do {
                 guard let presentingViewController = getRootViewController() else {
@@ -329,27 +224,80 @@ class SessionStore: ObservableObject {
                     throw URLError(.badServerResponse)
                 }
                 
-               try await supabase.auth.signInWithIdToken(
-                    credentials: .init(
-                        provider: .google,
-                        idToken: idToken
-                    )
+                try await supabase.auth.signInWithIdToken(
+                    credentials: .init(provider: .google, idToken: idToken)
                 )
                 
-                await checkSession()
+                // Manually get the session and update state
+                // The auth listener might not fire immediately
+                let session = try await supabase.auth.session
+                await updateUserState(from: session)
                 
                 await MainActor.run {
                     isLoading = false
                 }
             } catch {
                 await MainActor.run {
-                    print("Google sign-in error:", error, (error as NSError).code, (error as NSError).domain)
                     isLoading = false
+                    errorMessage = error.localizedDescription
                 }
             }
         }
     }
-
+    
+    func updateUsername(_ username: String) async throws {
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw ValidationError.emptyUsername
+        }
+        
+        try await supabase.auth.update(user: .init(
+            data: ["username": .string(trimmed)]
+        ))
+        
+        // Force refresh to get updated metadata
+        let session = try await supabase.auth.refreshSession()
+        await updateUserState(from: session)
+    }
+    
+    func updateProfile(skillLevel: SkillLevel) async throws {
+        let userId = try await supabase.auth.session.user.id
+        
+        try await supabase
+            .from("profiles")
+            .update([
+                "skill_level": skillLevel.rawValue,
+                "updated_at": ISO8601DateFormatter().string(from: Date())
+            ])
+            .eq("id", value: userId.uuidString)
+            .execute()
+        
+        // Reload the session to get updated profile
+        let session = try await supabase.auth.session
+        await updateUserState(from: session)
+    }
+    
+    // MARK: - Helpers
+    
+    private func validateSignUp(email: String, password: String, confirmPassword: String) -> Bool {
+        guard !email.isEmpty, !password.isEmpty else {
+            errorMessage = "Please fill in all fields"
+            return false
+        }
+        
+        guard password == confirmPassword else {
+            errorMessage = "Passwords don't match"
+            return false
+        }
+        
+        guard password.count >= 8 else {
+            errorMessage = "Password must be at least 8 characters"
+            return false
+        }
+        
+        return true
+    }
+    
     @MainActor
     private func getRootViewController() -> UIViewController? {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -358,8 +306,9 @@ class SessionStore: ObservableObject {
         }
         return rootViewController
     }
-
 }
+
+// MARK: - Supporting Types
 
 struct User {
     let id: UUID
@@ -371,8 +320,13 @@ struct User {
     var state: String?
 }
 
+struct ProfileData {
+    let skillLevel: SkillLevel?
+    let homeCourse: String?
+    let city: String?
+    let state: String?
+}
 
-// data according to WHS/USGA
 enum SkillLevel: String, Codable, CaseIterable {
     case scratch = "Scratch (Elite)"
     case lowHandicap = "Low Handicap (Advanced)"
@@ -381,36 +335,29 @@ enum SkillLevel: String, Codable, CaseIterable {
     
     var description: String {
         switch self {
-        case .scratch:
-            return "Consistenly scoring par or better"
-        case .lowHandicap:
-            return "Scores in the 70s"
-        case .midHandicap:
-            return "Scores in the 80s-90s"
-        case . highHandicap:
-            return "Scores over 100"
-            
+        case .scratch: return "Consistently scoring par or better"
+        case .lowHandicap: return "Scores in the 70s"
+        case .midHandicap: return "Scores in the 80s-90s"
+        case .highHandicap: return "Scores over 100"
         }
     }
     
     var handicapRange: String {
         switch self {
-        case .scratch:
-            return "Handicap: 0 or better"
-        case .lowHandicap:
-            return "Handicap: Under 10"
-        case .midHandicap:
-            return "Handicap: 10-29"
-        case .highHandicap:
-            return "Handicap: Above 29"
+        case .scratch: return "Handicap: 0 or better"
+        case .lowHandicap: return "Handicap: Under 10"
+        case .midHandicap: return "Handicap: 10-29"
+        case .highHandicap: return "Handicap: Above 29"
         }
     }
 }
 
-struct UserProfileData: Codable {
-    let skillLevel: SkillLevel
-    let homeCourse: String
-    let city: String
-    let state: String
+enum ValidationError: LocalizedError {
+    case emptyUsername
+    
+    var errorDescription: String? {
+        switch self {
+        case .emptyUsername: return "Username cannot be empty"
+        }
+    }
 }
-

@@ -18,10 +18,8 @@ struct LoginView: View {
         VStack(spacing: 20) {
             HStack {
                 Button("Back"){
-                    withAnimation{
                         mode = .landing
                         session.errorMessage = nil
-                    }
                 }
                 .tint(.green)
                 Spacer()

@@ -87,7 +87,6 @@ struct ReviewsView: View {
                                     }
                                 }
                             }
-
                         }
                         .padding()
                         .background(Color(.systemGray6))
@@ -141,17 +140,17 @@ struct ReviewsView: View {
 
 struct LeaveReviewTabView: View {
     @EnvironmentObject var reviewService: ReviewService
+    @EnvironmentObject var session: SessionStore
     @State private var isLoading = false
     @State private var errorText = ""
     @State private var showWriteReview = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var selectedImage : Image? = nil
-    // OLD: had showEditReview flag and optional selectedReview
-    // @State private var showEditReview = false
-    // @State private var selectedReview: Review?
-    // NEW: keep only selectedReview; use item-based .sheet
+    // Delete flow state
     @State private var showDeleteAlert = false
     @State private var selectedReview: Review?
+    // Edit flow state
+    @State private var reviewToEdit: Review?
     
     var body: some View {
         NavigationStack {
@@ -165,7 +164,7 @@ struct LeaveReviewTabView: View {
                             .foregroundColor(.red)
                             .frame(maxWidth: .infinity)
                     } else if reviewService.userReviews.isEmpty {
-                        Text("You haven’t submitted any reviews yet.")
+                        Text("You haven't submitted any reviews yet.")
                             .foregroundColor(.secondary)
                             .italic()
                             .frame(maxWidth: .infinity)
@@ -188,7 +187,7 @@ struct LeaveReviewTabView: View {
                                         Spacer()
                                         HStack(spacing: 12) {
                                             Button(action: {
-                                                selectedReview = review
+                                                reviewToEdit = review
                                             }) {
                                                 Image(systemName: "pencil")
                                                     .foregroundColor(.blue)
@@ -199,7 +198,7 @@ struct LeaveReviewTabView: View {
                                                 showDeleteAlert = true
                                             }) {
                                                 Image(systemName: "trash")
-                                                    .foregroundColor(.red)
+                                                .foregroundColor(.red)
                                             }
                                         }
                                     }
@@ -221,7 +220,6 @@ struct LeaveReviewTabView: View {
                                 Text("Course: \(review.courseName)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                
                                 
                                 if let photoUrls = review.photoUrls, !photoUrls.isEmpty {
                                     ScrollView(.horizontal, showsIndicators: false) {
@@ -257,7 +255,6 @@ struct LeaveReviewTabView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(12)
                             .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-                            
                         }
                     }
                 }
@@ -274,16 +271,20 @@ struct LeaveReviewTabView: View {
                 }
             }
             .task {
-                await loadUserReviews()
+                if session.isAuthenticated {
+                    await loadUserReviews()
+                }
             }
             .refreshable {
-                await loadUserReviews()
+                if session.isAuthenticated {
+                    await loadUserReviews()
+                }
             }
             .sheet(isPresented: $showWriteReview) {
             } content: {
                 WriteReviewView()
             }
-            .sheet(item: $selectedReview) { review in
+            .sheet(item: $reviewToEdit) { review in
                 WriteReviewView(
                     courseID: review.courseId,
                     courseName: review.courseName,
@@ -297,9 +298,14 @@ struct LeaveReviewTabView: View {
                         Task {
                             do {
                                 try await reviewService.deleteReview(review)
+                                await MainActor.run {
+                                    selectedReview = nil
+                                }
                                 await loadUserReviews()
                             } catch {
-                                errorText = "Failed to delete review. Please try again later."
+                                await MainActor.run {
+                                    errorText = "Failed to delete review. Please try again later."
+                                }
                             }
                         }
                     }
@@ -311,6 +317,13 @@ struct LeaveReviewTabView: View {
     }
 
     private func loadUserReviews() async {
+        guard session.isAuthenticated else {
+            await MainActor.run {
+                errorText = "Please sign in to view your reviews"
+            }
+            return
+        }
+        
         isLoading = true
         errorText = ""
         defer { isLoading = false }

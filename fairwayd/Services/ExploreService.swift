@@ -26,7 +26,6 @@ final class ExploreService: ObservableObject {
     @Published var topBogeyCourses: [GolfCourse] = []
     @Published var hasLoadedCourses = false
 
-    // MARK: - Private
     private var currentTask: Task<Void, Never>? = nil
     private var lastRefresh: Date? = nil
     private let courseCache = CourseCache()
@@ -36,7 +35,6 @@ final class ExploreService: ObservableObject {
     private let locationManager: LocationManager
     private let store: EngagementStore
 
-    // MARK: - Init
     init(
         service: GolfCourseService,
         finderService: GolfCourseFinderService,
@@ -49,7 +47,6 @@ final class ExploreService: ObservableObject {
         self.locationManager = locationManager
     }
 
-    // MARK: - Search
     func search() {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -108,14 +105,12 @@ final class ExploreService: ObservableObject {
         }
     }
 
-    // MARK: - Load Default Explore (if needed)
     func loadDefaultExploreIfNeeded(using location: CLLocation) {
         guard mode == .explore, !hasLoadedCourses else { return }
         loadDefaultExplore(using: location)
         hasLoadedCourses = true
     }
 
-    // MARK: - Load Default Explore
     func loadDefaultExplore(using location: CLLocation, forceReload: Bool = false) {
         // Prevent overlapping tasks
         currentTask?.cancel()
