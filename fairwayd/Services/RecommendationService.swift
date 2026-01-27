@@ -11,7 +11,6 @@ import Supabase
 import Combine
 import CoreML
 
-// MARK: - SkillLevel Extension
 extension SkillLevel {
     var estimatedHandiCap: Double {
         switch self {
@@ -23,7 +22,6 @@ extension SkillLevel {
     }
 }
 
-// MARK: - Course Scoring
 protocol CourseScoring {
     func score(course: GolfCourse, skillLevel: SkillLevel) -> Double
 }
@@ -72,15 +70,14 @@ struct RuleBasedCourseScorer: CourseScoring {
     }
 }
 
-// MARK: - RecommendationService
+
 @MainActor
 final class RecommendationService: ObservableObject {
-    // MARK: Published
     @Published var errorText = ""
     @Published var recommendedCourses: [GolfCourse] = []
+    @Published var loadingProgress: Double = 0
 
-    // MARK: Private
-    private var currentTask: Task<Void, Never>? = nil
+    private var currentTask: Task<Void, Never>?
     private let courseCache = CourseCache()
 
     private let service: GolfCourseService
@@ -89,7 +86,8 @@ final class RecommendationService: ObservableObject {
     private let locationManager: LocationManager
     private let scorer: CourseScoring
 
-    // MARK: Init
+    private let batchConfig = BatchProcessor.Config.default
+
     init(
         service: GolfCourseService,
         finderService: GolfCourseFinderService,
@@ -104,30 +102,25 @@ final class RecommendationService: ObservableObject {
         self.scorer = scorer
     }
 
-    // MARK: Load Recommended Courses
     func loadRecCourses(
         for skillLevel: SkillLevel,
         using location: CLLocation,
         forceReload: Bool = false
     ) {
-        // Cancel previous task
         currentTask?.cancel()
         currentTask = Task { [weak self] in
             guard let self else { return }
 
             self.errorText = ""
+            self.loadingProgress = 0
 
-            // Cache fast-path
             if !forceReload, let cached = await self.courseCache.get(for: location) {
-                let scoredCourses = cached.map { course in
-                    (course, self.scorer.score(course: course, skillLevel: skillLevel))
-                }
-                self.recommendedCourses = scoredCourses.sorted { $0.1 < $1.1 }.map { $0.0 }
+                self.recommendedCourses = self.scoreAndSort(cached, skillLevel: skillLevel)
+                self.loadingProgress = 1.0
                 return
             }
 
             do {
-                // Fetch nearby courses
                 let nearbyClubs = try await self.finderService.fetchNearbyCourses(
                     latitude: location.coordinate.latitude,
                     longitude: location.coordinate.longitude,
@@ -135,69 +128,51 @@ final class RecommendationService: ObservableObject {
                 )
 
                 let nearbyCourses = self.finderService.mapNearbyClubsToGolfCourses(nearbyClubs)
-                let coursesToProcess = Array(nearbyCourses.prefix(100))
+                let coursesToProcess = Array(nearbyCourses.prefix(50))
 
-                // Match courses concurrently
-                let matchedCourses = await withTaskGroup(of: GolfCourse?.self) { group -> [GolfCourse] in
-                    var results: [GolfCourse] = []
-
-                    for (index, nearbyCourse) in coursesToProcess.enumerated() {
-                        group.addTask {
-                            try? await Task.sleep(nanoseconds: UInt64(index * 100_000_000))
-
-                            do {
-                                let searchResults = try await self.service.searchCourses(query: nearbyCourse.course_name ?? "")
-                                let detailedCourse = searchResults.first(where: {
-                                    normalizeCourseName($0.titleText) == normalizeCourseName(nearbyCourse.titleText)
-                                })
-
-                                guard let course = detailedCourse,
-                                      let lat = course.location?.latitude,
-                                      let lon = course.location?.longitude else { return nil }
-
-                                let distanceMiles = location.distance(from: CLLocation(latitude: lat, longitude: lon)) / 1609.34
-                                return distanceMiles <= 50 ? course : nil
-
-                            } catch {
-                                print("Search error for \(nearbyCourse.titleText):", error)
-                                return nil
-                            }
-                        }
-                    }
-
-                    for await result in group {
-                        if let course = result { results.append(course) }
-                    }
-                    return results
+                let matchedCourses = try await BatchProcessor.process(
+                    items: coursesToProcess,
+                    config: self.batchConfig,
+                    onProgress: { self.loadingProgress = $0 * 0.8 }
+                ) { course in
+                    await self.matchCourse(course, location: location)
                 }
 
-                // Enrich concurrently
-                let enrichedCourses = await withTaskGroup(of: GolfCourse.self) { group -> [GolfCourse] in
-                    var enriched: [GolfCourse] = []
-
-                    for course in matchedCourses {
-                        group.addTask {
-                            await self.finderService.enrichCourseWContactInfo(course, nearbyCourses: nearbyCourses)
-                        }
-                    }
-
-                    for await course in group { enriched.append(course) }
-                    return enriched
+                let enrichedCourses = await BatchProcessor.processParallel(
+                    items: matchedCourses
+                ) { course in
+                    await self.finderService.enrichCourseWContactInfo(course, nearbyCourses: nearbyCourses)
                 }
 
-                // Cache + Score
                 await self.courseCache.set(enrichedCourses, for: location)
-                let scoredCourses = enrichedCourses.map { course in
-                    (course, self.scorer.score(course: course, skillLevel: skillLevel))
-                }
-                self.recommendedCourses = scoredCourses.sorted { $0.1 < $1.1 }.map { $0.0 }
+                self.recommendedCourses = self.scoreAndSort(enrichedCourses, skillLevel: skillLevel)
+                self.loadingProgress = 1.0
 
             } catch is CancellationError {
-                print("Recommendation load task cancelled — ignoring")
+                print("Recommendation task cancelled")
             } catch {
-                self.errorText = "Failed to fetch nearby courses: \(error.localizedDescription)"
+                self.errorText = "Failed to fetch courses: \(error.localizedDescription)"
             }
         }
     }
-}
 
+    private func matchCourse(_ course: GolfCourse, location: CLLocation) async -> GolfCourse? {
+        do {
+            let results = try await service.searchCourses(query: course.course_name ?? "")
+            return results.first {
+                guard let lat = $0.location?.latitude, let lon = $0.location?.longitude else { return false }
+                let distance = location.distance(from: CLLocation(latitude: lat, longitude: lon)) / 1609.34
+                return distance <= 50 && normalizeCourseName($0.titleText) == normalizeCourseName(course.titleText)
+            }
+        } catch {
+            return nil
+        }
+    }
+
+    private func scoreAndSort(_ courses: [GolfCourse], skillLevel: SkillLevel) -> [GolfCourse] {
+        courses
+            .map { ($0, scorer.score(course: $0, skillLevel: skillLevel)) }
+            .sorted { $0.1 < $1.1 }
+            .map { $0.0 }
+    }
+}

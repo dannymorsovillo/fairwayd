@@ -27,29 +27,6 @@ struct ActivatePayload: Codable {
 }
 
 
-enum APIError: Error, LocalizedError {
-    case missingAPIKey
-    case invalidURL
-    case badStatus(Int, String)
-    case decodeFailed
-    case supabaseError(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .missingAPIKey:
-            return "Missing API key."
-        case .invalidURL:
-            return "Invalid URL."
-        case .badStatus(let code, let body):
-            return "Request failed with status \(code). \(body)"
-        case .decodeFailed:
-            return "Failed to decode API response."
-        case .supabaseError(let message):
-            return "Supabase error: \(message)"
-        }
-    }
-}
-
 final class GolfCourseService: ObservableObject {
     @Published var courses: [GolfCourse] = []
     private let supabase = SupabaseManager.shared.client
@@ -85,38 +62,5 @@ final class GolfCourseService: ObservableObject {
         return courseResponse.course
     }
     
-    // MARK: - /v1/users (register)
-    func registerUser(email: String) async throws {
-        let url = URL(string: "\(APIConfig.supabaseURL)/v1/users")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONEncoder().encode(RegisterForm(email: email))
-
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        
-        guard let http = resp as? HTTPURLResponse else { return }
-        if !(200...299).contains(http.statusCode) {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw APIError.badStatus(http.statusCode, body)
-        }
-    }
-
-    // MARK: - /v1/users/activated (activate)
-    func activateUser(token: String) async throws {
-        let url = URL(string: "\(APIConfig.supabaseURL)/v1/users/activated")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "PUT"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONEncoder().encode(ActivatePayload(token: token))
-
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        
-        guard let http = resp as? HTTPURLResponse else { return }
-        if !(200...299).contains(http.statusCode) {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw APIError.badStatus(http.statusCode, body)
-        }
-    }
 }
 

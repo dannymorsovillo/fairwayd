@@ -134,21 +134,24 @@ class SessionStore: ObservableObject {
                 )
                 
                 await MainActor.run {
-                    isLoading = false
-                    if response.session != nil {
-                        // Auth state change will handle the rest
-                    } else {
-                        errorMessage = "Please check your email to confirm your account"
+                        isLoading = false
                     }
-                }
-            } catch {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = error.localizedDescription
+                            
+                    if let session = response.session {
+                        await updateUserState(from: session)  
+                    } else {
+                        await MainActor.run {
+                            errorMessage = "Please check your email to confirm your account"
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        isLoading = false
+                        errorMessage = error.localizedDescription
+                    }
                 }
             }
         }
-    }
     
     func signIn(email: String, password: String) {
         guard !email.isEmpty, !password.isEmpty else {
@@ -161,7 +164,8 @@ class SessionStore: ObservableObject {
         
         Task {
             do {
-                _ = try await supabase.auth.signIn(email: email, password: password)
+                let session = try await supabase.auth.signIn(email: email, password: password)
+                await updateUserState(from: session)
                 await MainActor.run {
                     isLoading = false
                 }
@@ -212,8 +216,6 @@ class SessionStore: ObservableObject {
                     credentials: .init(provider: .google, idToken: idToken)
                 )
                 
-                // Manually get the session and update state
-                // The auth listener might not fire immediately
                 let session = try await supabase.auth.session
                 await updateUserState(from: session)
                 
