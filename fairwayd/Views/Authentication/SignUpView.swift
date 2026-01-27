@@ -75,39 +75,8 @@ struct SignUpView: View {
                 }
                 
                 Button{
-                    // #region agent log
-                    let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let logData: [String: Any] = [
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "A",
-                        "location": "SignUpView.swift:78",
-                        "message": "Sign up button tapped",
-                        "data": [
-                            "rawEmail": email,
-                            "trimmedEmail": trimmedEmail,
-                            "emailLength": email.count,
-                            "trimmedEmailLength": trimmedEmail.count,
-                            "emailBytes": Array(email.utf8),
-                            "trimmedEmailBytes": Array(trimmedEmail.utf8),
-                            "hasPassword": !password.isEmpty,
-                            "passwordLength": password.count
-                        ],
-                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                    ]
-                    if let logFile = FileHandle(forWritingAtPath: "/Users/danny/Documents/fairwayd/.cursor/debug.log") {
-                        defer { try? logFile.close() }
-                        try? logFile.seekToEnd()
-                        if let jsonData = try? JSONSerialization.data(withJSONObject: logData),
-                           let jsonString = String(data: jsonData, encoding: .utf8) {
-                            try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
-                        }
-                    } else {
-                        try? (jsonString + "\n").write(toFile: "/Users/danny/Documents/fairwayd/.cursor/debug.log", atomically: true, encoding: .utf8)
-                    }
-                    // #endregion
                     session.signUp(
-                        email: trimmedEmail,
+                        email: email.trimmingCharacters(in: .whitespacesAndNewlines),
                         password: password,
                         confirmPassword: confirmPassword,
                         username: username.isEmpty ? nil : username.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -152,5 +121,3 @@ struct SignUpView: View {
     SignUpView(mode: .constant(.signup))
         .environmentObject(SessionStore())
 }
-
- 
