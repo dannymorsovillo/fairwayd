@@ -16,8 +16,12 @@ class SupabaseManager {
     private init() {
         client = SupabaseClient(
             supabaseURL: URL(string: APIConfig.supabaseURL)!,
-            supabaseKey: APIConfig.supabaseAnonKey
+            supabaseKey: APIConfig.supabaseAnonKey,
+            options: .init(
+                auth: .init(
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
         )
     }
-    
 }

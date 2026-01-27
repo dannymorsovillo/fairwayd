@@ -1,0 +1,41 @@
+{
+  "activityEntities" : [
+    "dataSourceMetrics",
+    [
+      {
+        "createdDate" : "2026-01-27T02:00:04Z",
+        "event" : "dataSourceMetrics",
+        "id" : "30E108DF-60E7-4535-8BBA-C5BE7AD21666",
+        "subtitle" : "4,912 Items",
+        "title" : "Data Summary"
+      }
+    ],
+    "dataSourceTrainingStarted",
+    [
+      {
+        "createdDate" : "2026-01-27T02:00:04Z",
+        "event" : "dataSourceTrainingStarted",
+        "id" : "7CE78264-8D9B-4798-ADF8-79C88223B44A",
+        "subtitle" : "fairwaydML 2",
+        "title" : "Used By"
+      }
+    ]
+  ],
+  "createdDate" : "2026-01-27T01:59:39Z",
+  "dataPathRelativeToProjectURL" : "../../course_training.csv/",
+  "dataResult" : {
+    "createdDate" : "2026-01-27T01:59:39Z",
+    "dataSourceID" : "7978C5CD-9536-48CC-A993-AACD8F3E0F19",
+    "dataURL" : "file:///Users/danny/Documents/course_training.csv"
+  },
+  "dataURL" : "file:///Users/danny/Documents/course_training.csv",
+  "experimentIDs" : [
+    "DBDFC5E6-DEBF-405B-8891-642392060FA4"
+  ],
+  "id" : "7978C5CD-9536-48CC-A993-AACD8F3E0F19",
+  "modifiedDate" : "2026-01-27T02:00:04Z",
+  "pathType" : 0,
+  "preferredFilename" : "course_training.csv",
+  "title" : "course_training.csv",
+  "version" : "1.0"
+}

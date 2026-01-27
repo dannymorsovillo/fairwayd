@@ -6,7 +6,7 @@
 //
 import Foundation
 
-struct Review: Identifiable, Codable {
+struct Review: Identifiable, Codable, Equatable {
     let id: UUID           // unique, now non-optional
     let userId: UUID?
     let username: String

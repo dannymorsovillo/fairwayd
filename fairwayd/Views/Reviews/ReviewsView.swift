@@ -7,6 +7,7 @@
 import SwiftUI
 import PhotosUI
 
+
 struct ReviewsView: View {
     let courseID: Int
     let courseName: String
@@ -15,6 +16,8 @@ struct ReviewsView: View {
     @State private var isLoading = false
     @State private var errorText = ""
     @State private var showWriteReview = false
+    @State private var selectedImageUrls: [String]?
+    @State private var selectedImageIndex: Int = 0
 
     var body: some View {
         ScrollView {
@@ -59,10 +62,10 @@ struct ReviewsView: View {
                                 .foregroundColor(.primary)
                                 .fixedSize(horizontal: false, vertical: true)
                             
-                            if let photoUrls = review.photoUrls {
+                            if let photoUrls = review.photoUrls, !photoUrls.isEmpty {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     LazyHStack(spacing: 12) {
-                                        ForEach(photoUrls, id: \.self) { urlString in
+                                        ForEach(Array(photoUrls.enumerated()), id: \.element) { index, urlString in
                                             if let url = URL(string: urlString) {
                                                 AsyncImage(url: url) { imagePhase in
                                                     switch imagePhase {
@@ -72,6 +75,12 @@ struct ReviewsView: View {
                                                             .scaledToFill()
                                                             .frame(width: 100, height: 100)
                                                             .cornerRadius(8)
+                                                            .clipped()
+                                                            .onTapGesture {
+                                                                print("Image URL:", urlString)
+                                                                selectedImageIndex = index
+                                                                selectedImageUrls = photoUrls
+                                                            }
                                                     case .empty:
                                                         ProgressView()
                                                             .frame(width: 100, height: 100)
@@ -86,6 +95,7 @@ struct ReviewsView: View {
                                         }
                                     }
                                 }
+                                .frame(height: 100)
                             }
                         }
                         .padding()
@@ -113,12 +123,67 @@ struct ReviewsView: View {
         .refreshable {
             await loadReviews()
         }
-        .sheet(isPresented: $showWriteReview) {
+        .sheet(isPresented: $showWriteReview, onDismiss: {
             Task {
                 await loadReviews()
             }
-        } content: {
+        }) {
             WriteReviewView(courseID: courseID, courseName: courseName)
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { selectedImageUrls != nil },
+            set: { if !$0 { selectedImageUrls = nil } }
+        )) {
+            if let urls = selectedImageUrls {
+                // Simple full-screen image viewer
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    
+                    TabView(selection: $selectedImageIndex) {
+                        ForEach(Array(urls.enumerated()), id: \.offset) { index, urlString in
+                            if let url = URL(string: urlString) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFit()
+                                    case .empty:
+                                        ProgressView()
+                                    case .failure:
+                                        VStack {
+                                            Image(systemName: "photo")
+                                                .font(.largeTitle)
+                                            Text("Failed to load")
+                                                .foregroundColor(.white)
+                                        }
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                                .tag(index)
+                            }
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .always))
+                    
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Button {
+                                selectedImageUrls = nil
+                                selectedImageIndex = 0
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                                    .padding()
+                            }
+                        }
+                        Spacer()
+                    }
+                }
+            }
         }
     }
 
@@ -146,11 +211,11 @@ struct LeaveReviewTabView: View {
     @State private var showWriteReview = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var selectedImage : Image? = nil
-    // Delete flow state
     @State private var showDeleteAlert = false
     @State private var selectedReview: Review?
-    // Edit flow state
     @State private var reviewToEdit: Review?
+    @State private var selectedImageUrls: [String]?
+    @State private var selectedImageIndex: Int = 0
     
     var body: some View {
         NavigationStack {
@@ -172,38 +237,40 @@ struct LeaveReviewTabView: View {
                     } else {
                         ForEach(reviewService.userReviews, id: \.id) { review in
                             VStack(alignment: .leading, spacing: 8) {
+                                // Header with edit/delete buttons
                                 HStack(alignment: .top) {
-                                    Text(review.username)
-                                        .bold()
-
-                                    Spacer()
-                                    VStack {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(review.username)
+                                            .bold()
+                                        
                                         if let date = review.createdAt {
                                             Text(date, style: .date)
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
-                                            
-                                        Spacer()
-                                        HStack(spacing: 20) {
-                                            Button(action: {
-                                                reviewToEdit = review
-                                            }) {
-                                                Image(systemName: "pencil")
-                                                    .foregroundColor(.blue)
-                                            }
-                                            
-                                            Button(action: {
-                                                selectedReview = review
-                                                showDeleteAlert = true
-                                            }) {
-                                                Image(systemName: "trash")
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    HStack(spacing: 20) {
+                                        Button {
+                                            reviewToEdit = review
+                                        } label: {
+                                            Image(systemName: "pencil")
+                                                .foregroundColor(.blue)
+                                        }
+                                        
+                                        Button {
+                                            selectedReview = review
+                                            showDeleteAlert = true
+                                        } label: {
+                                            Image(systemName: "trash")
                                                 .foregroundColor(.red)
-                                            }
                                         }
                                     }
                                 }
                                 
+                                // Stars
                                 HStack(spacing: 2) {
                                     ForEach(0..<5) { i in
                                         Image(systemName: i < review.rating ? "star.fill" : "star")
@@ -212,30 +279,38 @@ struct LeaveReviewTabView: View {
                                 }
                                 .font(.caption)
                                 
+                                // Comment
                                 Text(review.comment)
                                     .font(.body)
                                     .foregroundColor(.primary)
                                 
+                                // Course name
                                 Text("Course: \(review.courseName)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 
+                                // Photos
                                 if let photoUrls = review.photoUrls, !photoUrls.isEmpty {
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         LazyHStack(spacing: 12) {
-                                            ForEach(photoUrls, id: \.self) { urlString in
+                                            ForEach(Array(photoUrls.enumerated()), id: \.element) { index, urlString in
                                                 if let url = URL(string: urlString) {
                                                     AsyncImage(url: url) { phase in
                                                         switch phase {
                                                         case .empty:
                                                             ProgressView()
-                                                                .frame(width: 100, height: 120)
+                                                                .frame(width: 100, height: 100)
                                                         case .success(let image):
                                                             image
                                                                 .resizable()
                                                                 .scaledToFill()
                                                                 .frame(width: 100, height: 100)
                                                                 .cornerRadius(8)
+                                                                .clipped()
+                                                                .onTapGesture {
+                                                                    selectedImageUrls = photoUrls
+                                                                    selectedImageIndex = index
+                                                                }
                                                         case .failure:
                                                             Image(systemName: "photo")
                                                                 .frame(width: 100, height: 100)
@@ -259,63 +334,125 @@ struct LeaveReviewTabView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Your Review History")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showWriteReview.toggle()
-                    } label: {
-                        Image(systemName: "pencil")
-                    }
+        }
+        .navigationTitle("Your Review History")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showWriteReview.toggle()
+                } label: {
+                    Image(systemName: "pencil")
                 }
             }
-            .task {
-                if session.isAuthenticated {
-                    await loadUserReviews()
-                }
+        }
+        .task {
+            if session.isAuthenticated {
+                await loadUserReviews()
             }
-            .refreshable {
-                if session.isAuthenticated {
-                    await loadUserReviews()
-                }
+        }
+        .refreshable {
+            if session.isAuthenticated {
+                await loadUserReviews()
             }
-            .sheet(isPresented: $showWriteReview) {
-            } content: {
-                WriteReviewView()
+        }
+        .sheet(isPresented: $showWriteReview) {
+            WriteReviewView()
+        }
+        .onChange(of: showWriteReview) { _, isShowing in
+            if !isShowing {
+                Task { await loadUserReviews() }
             }
-            .sheet(item: $reviewToEdit) { review in
-                WriteReviewView(
-                    courseID: review.courseId,
-                    courseName: review.courseName,
-                    existingReview: review
-                )
+        }
+        .sheet(item: $reviewToEdit) { review in
+            WriteReviewView(
+                courseID: review.courseId,
+                courseName: review.courseName,
+                existingReview: review
+            )
+        }
+        .onChange(of: reviewToEdit) { _, review in
+            if review == nil {
+                Task { await loadUserReviews() }
             }
-            .alert("Delete Review", isPresented: $showDeleteAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete", role: .destructive) {
-                    if let review = selectedReview {
-                        Task {
-                            do {
-                                try await reviewService.deleteReview(review)
-                                await MainActor.run {
-                                    selectedReview = nil
-                                }
-                                await loadUserReviews()
-                            } catch {
-                                await MainActor.run {
-                                    errorText = "Failed to delete review. Please try again later."
-                                }
+        }
+        .alert("Delete Review", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let review = selectedReview {
+                    Task {
+                        do {
+                            try await reviewService.deleteReview(review)
+                            await MainActor.run {
+                                selectedReview = nil
+                            }
+                            await loadUserReviews()
+                        } catch {
+                            await MainActor.run {
+                                errorText = "Failed to delete review. Please try again later."
                             }
                         }
                     }
                 }
-            } message: {
-                Text("Are you sure you want to delete this review?")
+            }
+        } message: {
+            Text("Are you sure you want to delete this review?")
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { selectedImageUrls != nil },
+            set: { if !$0 { selectedImageUrls = nil } }
+        )) {
+            if let urls = selectedImageUrls {
+                // Simple full-screen image viewer
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    
+                    TabView(selection: $selectedImageIndex) {
+                        ForEach(Array(urls.enumerated()), id: \.offset) { index, urlString in
+                            if let url = URL(string: urlString) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFit()
+                                    case .empty:
+                                        ProgressView()
+                                    case .failure:
+                                        VStack {
+                                            Image(systemName: "photo")
+                                                .font(.largeTitle)
+                                            Text("Failed to load")
+                                                .foregroundColor(.white)
+                                        }
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                                .tag(index)
+                            }
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .always))
+                    
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Button {
+                                selectedImageUrls = nil
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                                    .padding()
+                            }
+                        }
+                        Spacer()
+                    }
+                }
             }
         }
     }
-
-    // note to increase peforance of this function on refresh
+    
     private func loadUserReviews() async {
         guard session.isAuthenticated else {
             await MainActor.run {
@@ -336,66 +473,4 @@ struct LeaveReviewTabView: View {
             }
         }
     }
-}
-#Preview("Leave Review Tab - With Reviews") {
-    LeaveReviewTabView()
-        .environmentObject({
-            let service = ReviewService()
-            service.skipNetWorkCalls = true
-            let currentUserId = UUID()
-            service.userReviews = [
-                Review(
-                    id: UUID(),
-                    userId: currentUserId,
-                    username: "Current User",
-                    rating: 5,
-                    comment: "This is my favorite course! The scenery is unmatched and every hole presents a unique challenge.",
-                    courseName: "Pebble Beach Golf Links",
-                    courseId: 1,
-                    createdAt: Date(),
-                    photoUrls: ["https://picsum.photos/200/200", "https://picsum.photos/200/201"]
-                ),
-                Review(
-                    id: UUID(),
-                    userId: currentUserId,
-                    username: "Current User",
-                    rating: 5,
-                    comment: "Once in a lifetime experience. The course is pristine.",
-                    courseName: "Augusta National",
-                    courseId: 2,
-                    createdAt: Date().addingTimeInterval(-172800),
-                    photoUrls: nil
-                )
-            ]
-            return service
-        }())
-        .environmentObject({
-            let session = SessionStore()
-            session.isAuthenticated = true
-            return session
-        }())
-}
-
-#Preview("Leave Review Tab - Empty") {
-    LeaveReviewTabView()
-        .environmentObject({
-            let service = ReviewService()
-            service.skipNetWorkCalls = true
-            return service
-        }())
-        .environmentObject({
-            let session = SessionStore()
-            session.isAuthenticated = true
-            return session
-        }())
-}
-
-#Preview("Leave Review Tab - Not Authenticated") {
-    LeaveReviewTabView()
-        .environmentObject({
-            let service = ReviewService()
-            service.skipNetWorkCalls = true
-            return service
-        }())
-        .environmentObject(SessionStore())
 }

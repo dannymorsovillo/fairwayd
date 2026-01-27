@@ -43,7 +43,7 @@ struct fairwaydApp: App {
         do {
             let config = MLModelConfiguration()
             // Optionally: config.computeUnits = .all / .cpuAndGPU / .cpuOnly
-            let model = try fairwaydML(configuration: config)
+            let model = try fairwaydML_2(configuration: config)
             scorer = MLBasedCourseScorer(model: model)
         } catch {
             // Fallback to rules if model fails to load
@@ -62,21 +62,27 @@ struct fairwaydApp: App {
     
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environmentObject(session)
-                .environmentObject(reviewService)
-                .environmentObject(locationManager)
-                .environmentObject(engagementStore)
-                .environmentObject(service)
-                .environmentObject(finderService)
-                .environmentObject(exploreService)
-                .environmentObject(recommendationService)
-                .task {
-                    session.engagementStore = engagementStore
-                }
-                .onOpenURL(perform: { url in
-                    GIDSignIn.sharedInstance.handle(url)
-                })
+            Group {
+//#if DEBUG
+               // MLExportDebugView()
+//#else
+                RootView()
+//#endif
+            }
+            .environmentObject(session)
+            .environmentObject(reviewService)
+            .environmentObject(locationManager)
+            .environmentObject(engagementStore)
+            .environmentObject(service)
+            .environmentObject(finderService)
+            .environmentObject(exploreService)
+            .environmentObject(recommendationService)
+            .task {
+                session.engagementStore = engagementStore
+            }
+            .onOpenURL { url in
+                GIDSignIn.sharedInstance.handle(url)
+            }
         }
     }
 }

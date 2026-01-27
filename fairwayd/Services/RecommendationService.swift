@@ -16,9 +16,9 @@ extension SkillLevel {
     var estimatedHandiCap: Double {
         switch self {
         case .scratch: 0
-        case .lowHandicap: 7
-        case .midHandicap: 18
-        case .highHandicap: 32
+        case .lowHandicap: 5 // center of 1-9
+        case .midHandicap: 14 // center of 10-18
+        case .highHandicap: 24 // center of 19+
         }
     }
 }
@@ -29,7 +29,7 @@ protocol CourseScoring {
 }
 
 struct MLBasedCourseScorer: CourseScoring {
-    let model: fairwaydML
+    let model: fairwaydML_2
 
     func score(course: GolfCourse, skillLevel: SkillLevel) -> Double {
         guard let tee = course.allTees.first,
@@ -41,7 +41,7 @@ struct MLBasedCourseScorer: CourseScoring {
             return 0.0
         }
 
-        let input = fairwaydMLInput(
+        let input = fairwaydML_2Input(
             course_rating: courseRating,
             slope: Int64(slope),
             bogey_rating: bogey_rating,

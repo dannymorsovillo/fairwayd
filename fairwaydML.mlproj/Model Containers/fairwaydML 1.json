@@ -1,5 +1,15 @@
 {
   "activityEntities" : [
+    "trainingStarted",
+    [
+      {
+        "createdDate" : "2026-01-20T00:40:14Z",
+        "event" : "trainingStarted",
+        "id" : "59709B3F-2CC3-49DC-AAAC-01571CC03D27",
+        "subtitle" : "fairwaydML 1",
+        "title" : "Training Started"
+      }
+    ],
     "trainingFinished",
     [
       {
@@ -18,16 +28,6 @@
         "id" : "8C898404-D5B1-413F-AD57-8A6A9548C33A",
         "subtitle" : "course_training_1 .csv",
         "title" : "Training Data Added"
-      }
-    ],
-    "trainingStarted",
-    [
-      {
-        "createdDate" : "2026-01-20T00:40:14Z",
-        "event" : "trainingStarted",
-        "id" : "59709B3F-2CC3-49DC-AAAC-01571CC03D27",
-        "subtitle" : "fairwaydML 1",
-        "title" : "Training Started"
       }
     ],
     "experimentCreated",

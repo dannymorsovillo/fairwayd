@@ -73,9 +73,6 @@ class SessionStore: ObservableObject {
             email: email,
             username: username,
             skillLevel: profileData?.skillLevel,
-            homeCourse: profileData?.homeCourse,
-            city: profileData?.city,
-            state: profileData?.state
         )
         
         isAuthenticated = true
@@ -99,9 +96,6 @@ class SessionStore: ObservableObject {
         do {
             struct ProfileResponse: Codable {
                 let skill_level: String?
-                let home_course: String?
-                let city: String?
-                let state: String?
             }
             
             let profile: ProfileResponse = try await supabase
@@ -114,9 +108,6 @@ class SessionStore: ObservableObject {
             
             return ProfileData(
                 skillLevel: profile.skill_level.flatMap(SkillLevel.init),
-                homeCourse: profile.home_course,
-                city: profile.city,
-                state: profile.state
             )
         } catch {
             print("Failed to load profile: \(error)")
@@ -126,9 +117,58 @@ class SessionStore: ObservableObject {
     
     // MARK: - Authentication Actions
     func signUp(email: String, password: String, confirmPassword: String, username: String? = nil) {
-        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        // #region agent log
+        let logData1: [String: Any] = [
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": "B",
+            "location": "SessionStore.swift:119",
+            "message": "signUp function entry",
+            "data": [
+                "email": email,
+                "emailLength": email.count,
+                "emailBytes": Array(email.utf8),
+                "emailIsEmpty": email.isEmpty,
+                "passwordLength": password.count
+            ],
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        ]
+        if let jsonData = try? JSONSerialization.data(withJSONObject: logData1),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            if let logFile = FileHandle(forWritingAtPath: "/Users/danny/Documents/fairwayd/.cursor/debug.log") {
+                defer { try? logFile.close() }
+                try? logFile.seekToEnd()
+                try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
+            } else {
+                try? (jsonString + "\n").write(toFile: "/Users/danny/Documents/fairwayd/.cursor/debug.log", atomically: true, encoding: .utf8)
+            }
+        }
+        // #endregion
 
-            guard validateSignUp(email: cleanEmail, password: password, confirmPassword: confirmPassword) else {
+            guard validateSignUp(email: email, password: password, confirmPassword: confirmPassword) else {
+                // #region agent log
+                let logData2: [String: Any] = [
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "E",
+                    "location": "SessionStore.swift:121",
+                    "message": "validateSignUp returned false",
+                    "data": [
+                        "errorMessage": errorMessage ?? "nil"
+                    ],
+                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+                ]
+                if let jsonData = try? JSONSerialization.data(withJSONObject: logData2),
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    if let logFile = FileHandle(forWritingAtPath: "/Users/danny/Documents/fairwayd/.cursor/debug.log") {
+                        defer { try? logFile.close() }
+                        try? logFile.seekToEnd()
+                        try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
+                    } else {
+                        try? (jsonString + "\n").write(toFile: "/Users/danny/Documents/fairwayd/.cursor/debug.log", atomically: true, encoding: .utf8)
+                    }
+                }
+                // #endregion
                 return
             }
         
@@ -137,12 +177,62 @@ class SessionStore: ObservableObject {
         
         Task {
             do {
+                // #region agent log
+                let logData3: [String: Any] = [
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "C",
+                    "location": "SessionStore.swift:131",
+                    "message": "Before Supabase signUp call",
+                    "data": [
+                        "email": email,
+                        "emailLength": email.count,
+                        "emailBytes": Array(email.utf8),
+                        "emailLowercased": email.lowercased()
+                    ],
+                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+                ]
+                if let jsonData = try? JSONSerialization.data(withJSONObject: logData3),
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    if let logFile = FileHandle(forWritingAtPath: "/Users/danny/Documents/fairwayd/.cursor/debug.log") {
+                        defer { try? logFile.close() }
+                        try? logFile.seekToEnd()
+                        try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
+                    } else {
+                        try? (jsonString + "\n").write(toFile: "/Users/danny/Documents/fairwayd/.cursor/debug.log", atomically: true, encoding: .utf8)
+                    }
+                }
+                // #endregion
                 let metadata = username.map { ["username": AnyJSON.string($0)] }
                 let response = try await supabase.auth.signUp(
                     email: email,
                     password: password,
                     data: metadata
                 )
+                
+                // #region agent log
+                let logData4: [String: Any] = [
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "D",
+                    "location": "SessionStore.swift:137",
+                    "message": "Supabase signUp succeeded",
+                    "data": [
+                        "hasSession": response.session != nil
+                    ],
+                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+                ]
+                if let jsonData = try? JSONSerialization.data(withJSONObject: logData4),
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    if let logFile = FileHandle(forWritingAtPath: "/Users/danny/Documents/fairwayd/.cursor/debug.log") {
+                        defer { try? logFile.close() }
+                        try? logFile.seekToEnd()
+                        try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
+                    } else {
+                        try? (jsonString + "\n").write(toFile: "/Users/danny/Documents/fairwayd/.cursor/debug.log", atomically: true, encoding: .utf8)
+                    }
+                }
+                // #endregion
                 
                 await MainActor.run {
                     isLoading = false
@@ -153,6 +243,35 @@ class SessionStore: ObservableObject {
                     }
                 }
             } catch {
+                // #region agent log
+                let errorDesc = error.localizedDescription
+                let errorString = String(describing: error)
+                let logData5: [String: Any] = [
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "A",
+                    "location": "SessionStore.swift:145",
+                    "message": "Supabase signUp error",
+                    "data": [
+                        "errorLocalizedDescription": errorDesc,
+                        "errorString": errorString,
+                        "errorType": String(describing: type(of: error)),
+                        "email": email,
+                        "emailLength": email.count
+                    ],
+                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+                ]
+                if let jsonData = try? JSONSerialization.data(withJSONObject: logData5),
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    if let logFile = FileHandle(forWritingAtPath: "/Users/danny/Documents/fairwayd/.cursor/debug.log") {
+                        defer { try? logFile.close() }
+                        try? logFile.seekToEnd()
+                        try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
+                    } else {
+                        try? (jsonString + "\n").write(toFile: "/Users/danny/Documents/fairwayd/.cursor/debug.log", atomically: true, encoding: .utf8)
+                    }
+                }
+                // #endregion
                 await MainActor.run {
                     isLoading = false
                     errorMessage = error.localizedDescription
@@ -275,6 +394,33 @@ class SessionStore: ObservableObject {
     // MARK: - Helpers
     
     private func validateSignUp(email: String, password: String, confirmPassword: String) -> Bool {
+        // #region agent log
+        let logData: [String: Any] = [
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": "D",
+            "location": "SessionStore.swift:267",
+            "message": "validateSignUp entry",
+            "data": [
+                "email": email,
+                "emailLength": email.count,
+                "emailIsEmpty": email.isEmpty,
+                "passwordLength": password.count,
+                "passwordIsEmpty": password.isEmpty
+            ],
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        ]
+        if let jsonData = try? JSONSerialization.data(withJSONObject: logData),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            if let logFile = FileHandle(forWritingAtPath: "/Users/danny/Documents/fairwayd/.cursor/debug.log") {
+                defer { try? logFile.close() }
+                try? logFile.seekToEnd()
+                try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
+            } else {
+                try? (jsonString + "\n").write(toFile: "/Users/danny/Documents/fairwayd/.cursor/debug.log", atomically: true, encoding: .utf8)
+            }
+        }
+        // #endregion
         guard !email.isEmpty, !password.isEmpty else {
             errorMessage = "Please fill in all fields"
             return false
@@ -289,6 +435,28 @@ class SessionStore: ObservableObject {
             errorMessage = "Password must be at least 8 characters"
             return false
         }
+        
+        // #region agent log
+        let logData2: [String: Any] = [
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": "D",
+            "location": "SessionStore.swift:283",
+            "message": "validateSignUp returning true",
+            "data": [:],
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        ]
+        if let jsonData = try? JSONSerialization.data(withJSONObject: logData2),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            if let logFile = FileHandle(forWritingAtPath: "/Users/danny/Documents/fairwayd/.cursor/debug.log") {
+                defer { try? logFile.close() }
+                try? logFile.seekToEnd()
+                try? logFile.write(contentsOf: (jsonString + "\n").data(using: .utf8)!)
+            } else {
+                try? (jsonString + "\n").write(toFile: "/Users/danny/Documents/fairwayd/.cursor/debug.log", atomically: true, encoding: .utf8)
+            }
+        }
+        // #endregion
         
         return true
     }
@@ -317,9 +485,6 @@ struct User {
 
 struct ProfileData {
     let skillLevel: SkillLevel?
-    let homeCourse: String?
-    let city: String?
-    let state: String?
 }
 
 enum SkillLevel: String, Codable, CaseIterable {
@@ -340,9 +505,9 @@ enum SkillLevel: String, Codable, CaseIterable {
     var handicapRange: String {
         switch self {
         case .scratch: return "Handicap: 0 or better"
-        case .lowHandicap: return "Handicap: Under 10"
-        case .midHandicap: return "Handicap: 10-29"
-        case .highHandicap: return "Handicap: Above 29"
+        case .lowHandicap: return "Handicap: 1-9"
+        case .midHandicap: return "Handicap: 10-18"
+        case .highHandicap: return "Handicap: Above 19+"
         }
     }
 }
@@ -356,3 +521,4 @@ enum ValidationError: LocalizedError {
         }
     }
 }
+

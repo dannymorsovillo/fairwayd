@@ -13,9 +13,7 @@ import UIKit
 class ReviewService: ObservableObject {
     @Published var courseReviews: [Review] = [] // reviews for spec. course
     @Published var userReviews: [Review] = []
-    
-    var skipNetWorkCalls = false
-    
+        
     private let supabase = SupabaseManager.shared.client
     
         
@@ -66,10 +64,6 @@ class ReviewService: ObservableObject {
         }
         
         func fetchReviewsByCourseName(_ courseName: String) async throws -> [Review] {
-            
-            if skipNetWorkCalls {
-                return courseReviews
-            }
             
             let response = try await supabase
                 .from("reviews")

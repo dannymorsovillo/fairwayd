@@ -86,7 +86,7 @@ struct LoginView: View {
                 Button {
                     session.signInWithGoogle()
                 } label: {
-                        Image("ios_neutral_rd_SI")
+                        Image("ios_dark_rd_SI")
             }
                 .disabled(session.isLoading)
         }
