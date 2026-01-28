@@ -6,44 +6,35 @@
 //
 
 import SwiftUI
+import UIKit
 
-
+//Simple Image Caching for Reviews Views
 final class ImageCache {
-    static let shared = ImageCache()
+    static let shared = NSCache<NSURL, UIImage>()
     
-    private let cache = NSCache<NSURL, UIImage>()
-    
-    private init() {
-        cache.countLimit = 100
-        cache.totalCostLimit = 50 * 1024 * 1024 // 50MB
-    }
-    
-    func get(for url: URL) -> UIImage? {
-        cache.object(forKey: url as NSURL)
-    }
-    
-    func set(_ image: UIImage, for url: URL) {
-        let cost = image.cgImage.map { $0.bytesPerRow * $0.height } ?? 0
-        cache.setObject(image, forKey: url as NSURL, cost: cost)
+    init() {
+        ImageCache.shared.countLimit = 100
+        ImageCache.shared.totalCostLimit = 50
     }
 }
 
 
 struct CachedAsyncImage<Content: View, Placeholder: View>: View {
-    let url: URL?
-    @ViewBuilder let content: (Image) -> Content
-    @ViewBuilder let placeholder: () -> Placeholder
+    let url: URL
+    let scale: CGFloat
+    let content: (Image) -> Content
+    let placeholder: () -> Placeholder
     
     @State private var cachedImage: UIImage?
-    @State private var isLoading = false
-    @State private var hasFailed = false
     
     init(
-        url: URL?,
+        url: URL,
+        scale: CGFloat = 1.0,
         @ViewBuilder content: @escaping (Image) -> Content,
         @ViewBuilder placeholder: @escaping () -> Placeholder
     ) {
         self.url = url
+        self.scale = scale
         self.content = content
         self.placeholder = placeholder
     }
@@ -52,45 +43,49 @@ struct CachedAsyncImage<Content: View, Placeholder: View>: View {
         Group {
             if let cachedImage {
                 content(Image(uiImage: cachedImage))
-            } else if hasFailed {
-                placeholder()
             } else {
-                placeholder()
-                    .onAppear { loadImage() }
+                AsyncImage(url: url, scale: scale) { phase -> AnyView in
+                    switch phase {
+                    case .success(let image):
+                        saveToCache(from: url)
+                        return AnyView(content(image))
+                    case .failure(_):
+                        return AnyView(placeholder())
+                    case .empty:
+                        return AnyView(placeholder())
+                    @unknown default:
+                        return AnyView(placeholder())
+                    }
+                }
             }
+        }
+        .onAppear{
+            loadFromCache()
         }
     }
     
-    private func loadImage() {
-        guard let url, !isLoading else { return }
-        
-        if let cached = ImageCache.shared.get(for: url) {
+    private func loadFromCache() {
+        if let cached = ImageCache.shared.object(forKey: url as NSURL) {
             cachedImage = cached
-            return
         }
-        
-        isLoading = true
-        
+    }
+    
+    private func saveToCache(from url: URL) {
         Task {
             do {
-                let (data, response) = try await URLSession.shared.data(from: url)
-                
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200,
-                      let image = UIImage(data: data) else {
-                    await MainActor.run { hasFailed = true; isLoading = false }
-                    return
-                }
-                
-                ImageCache.shared.set(image, for: url)
-                
-                await MainActor.run {
-                    cachedImage = image
-                    isLoading = false
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let uiImage = UIImage(data: data) {
+                    await MainActor.run {
+                        ImageCache.shared.setObject(uiImage, forKey: url as NSURL)
+                        if cachedImage == nil {
+                            cachedImage = uiImage
+                        }
+                    }
                 }
             } catch {
-                await MainActor.run { hasFailed = true; isLoading = false }
+                print("Image caching failed: \(error)")
             }
         }
     }
 }
+

@@ -21,7 +21,6 @@ class SessionStore: ObservableObject {
         }
     }
     
-    // MARK: - Session Management
     private func checkSession() async {
         do {
             let session = try await supabase.auth.session
@@ -58,7 +57,6 @@ class SessionStore: ObservableObject {
         }
     }
     
-    // MARK: - User State Management
     @MainActor
     private func updateUserState(from session: Session) async {
         let userId = session.user.id
@@ -91,7 +89,6 @@ class SessionStore: ObservableObject {
         engagementStore?.clearUser()
     }
     
-    // MARK: - Profile Loading
     private func loadProfile(userId: UUID) async -> ProfileData? {
         do {
             struct ProfileResponse: Codable {
@@ -115,7 +112,6 @@ class SessionStore: ObservableObject {
         }
     }
     
-    // MARK: - Authentication Actions
     func signUp(email: String, password: String, confirmPassword: String, username: String? = nil) {
         guard validateSignUp(email: email, password: password, confirmPassword: confirmPassword) else {
             return
@@ -263,8 +259,6 @@ class SessionStore: ObservableObject {
         await updateUserState(from: session)
     }
     
-    // MARK: - Helpers
-    
     private func validateSignUp(email: String, password: String, confirmPassword: String) -> Bool {
         guard !email.isEmpty, !password.isEmpty else {
             errorMessage = "Please fill in all fields"
@@ -294,7 +288,6 @@ class SessionStore: ObservableObject {
     }
 }
 
-// MARK: - Supporting Types
 
 struct User {
     let id: UUID

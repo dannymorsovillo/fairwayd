@@ -8,22 +8,22 @@
 import Foundation
 import Supabase
 
-struct PlacePlacesSearchRequest: Codable {
+struct PlacesSearchRequest: Codable {
     let action: String
     let courseName: String
     let location: String?
 }
 
-struct PlacePhotoRequest: Codable {
+struct PlacesPhotoRequest: Codable {
     let action: String
     let placeId: String
 }
 
 struct PlacesSearchResponse: Codable {
-    let results: [PlaceResult]
+    let results: [PlacesResult]
 }
 
-struct PlaceResult: Codable {
+struct PlacesResult: Codable {
     let name: String
     let place_id: String
 }
@@ -33,95 +33,59 @@ struct PhotoResponse: Codable {
 }
 
 final class GooglePlacesImageProvider {
-    
     private let supabase = SupabaseManager.shared.client
     
     func fetchPlaceID(
         courseName: String,
-        location: String?,
-        completion: @escaping (String?) -> Void
-    ) {
-        Task {
-            do {
-                let request = PlacePlacesSearchRequest(
-                    action: "search",
-                    courseName: courseName,
-                    location: location
-                )
-                
-                let bodyData = try JSONEncoder().encode(request)
-                
-                let response: PlacesSearchResponse = try await supabase.functions.invoke(
-                    "google-places-image",
-                    options: FunctionInvokeOptions(body: bodyData)
-                )
-                
-                let exactMatch = response.results.first { result in
-                    result.name.lowercased().contains(courseName.lowercased())
-                }
-                
-                let placeID = exactMatch?.place_id ?? response.results.first?.place_id
-                
-                DispatchQueue.main.async {
-                    completion(placeID)
-                }
-            } catch {
-                print("Error fetching place ID:", error)
-                DispatchQueue.main.async {
-                    completion(nil)
-                }
-            }
+        location: String?
+    ) async throws -> String? {
+        let request = PlacesSearchRequest(
+            action: "search",
+            courseName: courseName,
+            location: location
+        )
+        
+        let bodyData = try JSONEncoder().encode(request)
+        
+        let response: PlacesSearchResponse = try await supabase.functions.invoke(
+            "google-places-image",
+            options: FunctionInvokeOptions(body: bodyData)
+        )
+        
+        let exactMatch = response.results.first { result in
+            result.name.lowercased().contains(courseName.lowercased())
         }
+        
+        return exactMatch?.place_id ?? response.results.first?.place_id
     }
     
-    func fetchImageURLByPlaceID(
-        placeID: String,
-        completion: @escaping (URL?) -> Void
-    ) {
-        Task {
-            do {
-                let request = PlacePhotoRequest(
-                    action: "photo",
-                    placeId: placeID
-                )
-                
-                let bodyData = try JSONEncoder().encode(request)
-                
-                let response: PhotoResponse = try await supabase.functions.invoke(
-                    "google-places-image",
-                    options: FunctionInvokeOptions(body: bodyData)
-                )
-                
-                if let url = URL(string: response.photoUrl) {
-                    DispatchQueue.main.async {
-                        completion(url)
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        completion(nil)
-                    }
-                }
-            } catch {
-                print("Error fetching image by place ID:", error)
-                DispatchQueue.main.async {
-                    completion(nil)
-                }
-            }
-        }
+    func fetchImageURLByPlaceID(placeID: String) async throws -> URL? {
+        let request = PlacesPhotoRequest(
+            action: "photo",
+            placeId: placeID
+        )
+        
+        let bodyData = try JSONEncoder().encode(request)
+        
+        let response: PhotoResponse = try await supabase.functions.invoke(
+            "google-places-image",
+            options: FunctionInvokeOptions(body: bodyData)
+        )
+        
+        return URL(string: response.photoUrl)
     }
     
     func fetchImageURL(
         courseName: String,
-        location: String? = nil,
-        completion: @escaping (URL?) -> Void
-    ) {
-        fetchPlaceID(courseName: courseName, location: location) { [weak self] placeID in
-            guard let placeID = placeID else {
-                completion(nil)
-                return
-            }
-            
-            self?.fetchImageURLByPlaceID(placeID: placeID, completion: completion)
+        location: String? = nil
+    ) async throws -> URL? {
+        guard let placeID = try await fetchPlaceID(
+            courseName: courseName,
+            location: location
+        ) else {
+            return nil
         }
+        
+        return try await fetchImageURLByPlaceID(placeID: placeID)
     }
 }

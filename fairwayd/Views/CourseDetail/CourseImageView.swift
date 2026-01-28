@@ -12,10 +12,10 @@ struct CourseImageView: View {
     let courseName: String
     let location: String?
 
-    @State private var imageURL: URL?
+    @State private var courseImageURL: URL?
 
     var body: some View {
-        AsyncImage(url: imageURL) { phase in
+        AsyncImage(url: courseImageURL) { phase in
             switch phase {
             case .success(let image):
                 image
@@ -30,17 +30,13 @@ struct CourseImageView: View {
             }
         }
         .clipped()
-        .onAppear {
-            guard imageURL == nil else { return }
-
-            ImageService.shared.fetchCourseImage(
+        .task {
+            if let imageURL = await ImageService.shared.fetchCourseImage(
                 placeID: placeID,
                 name: courseName,
                 location: location
-            ) { url in
-                DispatchQueue.main.async {
-                    self.imageURL = url
-                }
+            ) {
+                courseImageURL = imageURL
             }
         }
     }

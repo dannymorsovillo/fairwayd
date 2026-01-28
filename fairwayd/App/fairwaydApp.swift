@@ -38,11 +38,9 @@ struct fairwaydApp: App {
             locationManager: locationMgr
         ))
         
-        // Core ML model init: use configuration and handle failures gracefully
         let scorer: CourseScoring
         do {
             let config = MLModelConfiguration()
-            // Optionally: config.computeUnits = .all / .cpuAndGPU / .cpuOnly
             let model = try fairwaydML_2(configuration: config)
             scorer = MLBasedCourseScorer(model: model)
         } catch {
@@ -63,11 +61,11 @@ struct fairwaydApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-//#if DEBUG
+                //#if DEBUG
                // MLExportDebugView()
-//#else
+                //#else
                 RootView()
-//#endif
+                //#endif
             }
             .environmentObject(session)
             .environmentObject(reviewService)

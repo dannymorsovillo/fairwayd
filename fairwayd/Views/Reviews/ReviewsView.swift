@@ -7,7 +7,6 @@
 import SwiftUI
 import PhotosUI
 
-// MARK: - Full Screen Image Viewer
 
 struct FullScreenImageViewer: View {
     let urls: [String]
@@ -62,7 +61,6 @@ struct FullScreenImageViewer: View {
     }
 }
 
-// MARK: - Review Photo Grid
 
 struct ReviewPhotoGrid: View {
     let photoUrls: [String]
@@ -102,7 +100,6 @@ struct ReviewPhotoGrid: View {
     }
 }
 
-// MARK: - Reviews View
 
 struct ReviewsView: View {
     let courseID: Int
@@ -154,8 +151,6 @@ struct ReviewsView: View {
         }
     }
     
-    // MARK: - Computed Properties
-    
     private var showingImageViewer: Binding<Bool> {
         Binding(
             get: { selectedImageUrls != nil },
@@ -185,7 +180,6 @@ struct ReviewsView: View {
         }
     }
     
-    // MARK: - Review Card
     
     private func reviewCard(for review: Review) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -252,7 +246,6 @@ struct ReviewsView: View {
     }
 }
 
-// MARK: - Leave Review Tab View
 
 struct LeaveReviewTabView: View {
     @EnvironmentObject var reviewService: ReviewService
@@ -282,7 +275,7 @@ struct LeaveReviewTabView: View {
         .sheet(isPresented: $showWriteReview, onDismiss: { Task { await loadUserReviews() } }) {
             WriteReviewView()
         }
-        .sheet(item: $reviewToEdit, onDismiss: { Task { await loadUserReviews() } }) { review in
+        .sheet(item: $reviewToEdit) { review in
             WriteReviewView(
                 courseID: review.courseId,
                 courseName: review.courseName,
@@ -422,7 +415,6 @@ struct LeaveReviewTabView: View {
         .font(.caption)
     }
     
-    // MARK: - Actions
     
     private func loadIfAuthenticated() async {
         if session.isAuthenticated {

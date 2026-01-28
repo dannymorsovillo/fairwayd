@@ -14,8 +14,8 @@
             filePath = "fairwayd/Services/GolfCourseFinderService.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "69"
-            endingLineNumber = "69"
+            startingLineNumber = "68"
+            endingLineNumber = "68"
             landmarkName = "mapNearbyClubsToGolfCourses(_:)"
             landmarkType = "7">
          </BreakpointContent>

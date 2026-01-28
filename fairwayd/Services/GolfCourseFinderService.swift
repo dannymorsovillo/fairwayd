@@ -30,7 +30,6 @@ struct NearbyCourse: Codable {
 
 
 final class GolfCourseFinderService: ObservableObject {
-    @Published var courses: [GolfCourse] = []
     private let locationManager: LocationManager
     private let supabase = SupabaseManager.shared.client
     

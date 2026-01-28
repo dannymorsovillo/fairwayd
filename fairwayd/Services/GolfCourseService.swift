@@ -18,14 +18,6 @@ struct CourseIDRequest: Codable {
     let courseId: Int
 }
 
-struct RegisterForm: Codable {
-    let email: String
-}
-
-struct ActivatePayload: Codable {
-    let token: String
-}
-
 
 final class GolfCourseService: ObservableObject {
     @Published var courses: [GolfCourse] = []

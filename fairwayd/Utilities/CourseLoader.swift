@@ -1,0 +1,191 @@
+//
+//  CourseLoader.swift
+//  fairwayd
+//
+//  Created by Danny Morsovillo on 1/27/26.
+//
+
+import Foundation
+import CoreLocation
+
+actor ConcurrencyLimiter {
+    private let maxConcurrent: Int
+    private var currentCount = 0
+    
+    init(maxConcurrent: Int = 6) {
+        self.maxConcurrent = maxConcurrent
+    }
+    
+    func acquire() async {
+        while currentCount >= maxConcurrent {
+            await Task.yield()
+        }
+        currentCount += 1
+    }
+    
+    func release() {
+        currentCount = max(0, currentCount - 1)
+    }
+}
+
+@MainActor
+final class CourseLoader {
+    
+    private let service: GolfCourseService
+    private let finderService: GolfCourseFinderService
+    private let courseCache: CourseCache
+    private let limiter = ConcurrencyLimiter(maxConcurrent: 6)
+    
+    init(
+        service: GolfCourseService,
+        finderService: GolfCourseFinderService,
+        courseCache: CourseCache = CourseCache()
+    ) {
+        self.service = service
+        self.finderService = finderService
+        self.courseCache = courseCache
+    }
+    
+    func loadCoursesIncrementally(
+        location: CLLocation,
+        maxCourses: Int = 40,
+        forceReload: Bool = false,
+        onCourseReady: @escaping (GolfCourse) -> Void,
+        onProgress: ((Double) -> Void)? = nil
+    ) async throws -> [GolfCourse] {
+        
+        // Check cache first
+        if !forceReload, let cached = await courseCache.get(for: location) {
+            for course in cached {
+                onCourseReady(course)
+            }
+            onProgress?(1.0)
+            return cached
+        }
+        
+        // Fetch nearby courses from finder service
+        let nearbyClubs = try await finderService.fetchNearbyCourses(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude,
+            miles: 50
+        )
+        
+        let nearbyCourses = finderService.mapNearbyClubsToGolfCourses(nearbyClubs)
+        let coursesToProcess = Array(nearbyCourses.prefix(maxCourses))
+        
+        guard !coursesToProcess.isEmpty else {
+            onProgress?(1.0)
+            return []
+        }
+        
+        // Process courses concurrently with controlled parallelism
+        var matchedCourses: [GolfCourse] = []
+        var completedCount = 0
+        let total = coursesToProcess.count
+        
+        try await withThrowingTaskGroup(of: GolfCourse?.self) { group in
+            for course in coursesToProcess {
+                group.addTask {
+                    try Task.checkCancellation()
+                    
+                    await self.limiter.acquire()
+                    defer { Task { await self.limiter.release() } }
+                    
+                    // Match course via search API
+                    guard let matched = await self.matchCourse(course, location: location) else {
+                        return nil
+                    }
+                    
+                    // Enrich with contact info
+                    let enriched = await self.finderService.enrichCourseWContactInfo(
+                        matched,
+                        nearbyCourses: nearbyCourses
+                    )
+                    
+                    return enriched
+                }
+            }
+            
+            // Stream results as they complete
+            for try await result in group {
+                completedCount += 1
+                let progress = Double(completedCount) / Double(total)
+                onProgress?(progress)
+                
+                if let course = result {
+                    matchedCourses.append(course)
+                    onCourseReady(course)
+                }
+            }
+        }
+        
+        // Cache the results
+        await courseCache.set(matchedCourses, for: location)
+        
+        return matchedCourses
+    }
+    
+    func searchCoursesIncrementally(
+        query: String,
+        location: CLLocation?,
+        onCourseReady: @escaping (GolfCourse) -> Void
+    ) async throws -> [GolfCourse] {
+        
+        let results = try await service.searchCourses(query: query)
+        
+        // Get nearby courses for enrichment (use cache if available)
+        var nearbyCourses: [GolfCourse] = []
+        if let location = location {
+            if let cached = await courseCache.get(for: location) {
+                nearbyCourses = cached
+            } else {
+                let clubs = try? await finderService.fetchNearbyCourses(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    miles: 50
+                )
+                if let clubs = clubs {
+                    nearbyCourses = finderService.mapNearbyClubsToGolfCourses(clubs)
+                }
+            }
+        }
+        
+        // Enrich and stream results
+        var enrichedResults: [GolfCourse] = []
+        
+        await withTaskGroup(of: GolfCourse.self) { group in
+            for course in results {
+                group.addTask {
+                    await self.finderService.enrichCourseWContactInfo(
+                        course,
+                        nearbyCourses: nearbyCourses
+                    )
+                }
+            }
+            
+            for await enriched in group {
+                enrichedResults.append(enriched)
+                onCourseReady(enriched)
+            }
+        }
+        
+        return enrichedResults
+    }
+    
+    
+    private func matchCourse(_ course: GolfCourse, location: CLLocation) async -> GolfCourse? {
+        do {
+            let results = try await service.searchCourses(query: course.course_name ?? "")
+            return results.first { candidate in
+                guard let lat = candidate.location?.latitude,
+                      let lon = candidate.location?.longitude else {
+                    return false
+                }
+                let distance = location.distance(from: CLLocation(latitude: lat, longitude: lon)) / 1609.34
+                return distance <= 50 && normalizeCourseName(candidate.titleText) == normalizeCourseName(course.titleText)
+            }
+        } catch {
+            return nil
+        }
+    }
+}
