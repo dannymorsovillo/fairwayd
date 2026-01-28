@@ -427,13 +427,11 @@ struct CameraView: View {
         .sheet(isPresented: $showCamera) {
             CameraSelect(images: $capturedImages, sourceType: .camera)
                 .ignoresSafeArea()
-                .padding(.vertical)
         }
         .presentationDetents([.medium, .large])
         .sheet(isPresented: $showPhotoLibrary) {
             CameraSelect(images: $capturedImages, sourceType: .photoLibrary)
                 .ignoresSafeArea()
-                .padding(.vertical)
         }
     }
 }

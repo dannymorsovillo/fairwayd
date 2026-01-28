@@ -36,23 +36,6 @@ import SwiftUI
                 
                 Section("Profile") {
                     if let user = session.currentUser {
-                        if let homeCourse = user.homeCourse {
-                            HStack {
-                                Text("Home Course")
-                                Spacer()
-                                Text(homeCourse)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        
-                        if let city = user.city, let state = user.state {
-                            HStack {
-                                Text("Location")
-                                Spacer()
-                                Text("\(city), \(state)")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
                         
                         if let skillLevel = user.skillLevel {
                             HStack {
@@ -84,7 +67,6 @@ import SwiftUI
                 }
                     
                     
-            
                 Section {
                     Button(role: .destructive){
                         session.signOut()

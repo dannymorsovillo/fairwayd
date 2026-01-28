@@ -48,7 +48,7 @@ final class ExploreService: ObservableObject {
         self.locationManager = locationManager
     }
     
-    // Convenience initializer matching original API
+    // convenience initializer matching original API
     convenience init(
         service: GolfCourseService,
         finderService: GolfCourseFinderService,
@@ -85,7 +85,7 @@ final class ExploreService: ObservableObject {
                     }
                 )
                 
-                // Also update the service.courses for compatibility
+                // update the service.courses for compatibility
                 self.service.courses = self.searchResults
                 self.isSearching = false
                 
@@ -127,7 +127,8 @@ final class ExploreService: ObservableObject {
             do {
                 _ = try await self.courseLoader.loadCoursesIncrementally(
                     location: location,
-                    maxCourses: 60,
+                    skillLevel: nil,
+                    maxCourses: 40,
                     forceReload: forceReload,
                     onCourseReady: { [weak self] course in
                         self?.addCourseToTopLists(course)

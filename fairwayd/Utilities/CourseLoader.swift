@@ -12,6 +12,7 @@ actor ConcurrencyLimiter {
     private let maxConcurrent: Int
     private var currentCount = 0
     
+    // can change as needed
     init(maxConcurrent: Int = 6) {
         self.maxConcurrent = maxConcurrent
     }
@@ -48,6 +49,7 @@ final class CourseLoader {
     
     func loadCoursesIncrementally(
         location: CLLocation,
+        skillLevel: SkillLevel?,
         maxCourses: Int = 40,
         forceReload: Bool = false,
         onCourseReady: @escaping (GolfCourse) -> Void,

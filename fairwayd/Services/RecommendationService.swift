@@ -73,18 +73,17 @@ struct RuleBasedCourseScorer: CourseScoring {
 
 @MainActor
 final class RecommendationService: ObservableObject {
-    
-    
     @Published var errorText = ""
     @Published var recommendedCourses: [GolfCourse] = []
     @Published var loadingProgress: Double = 0
     @Published var isLoading = false
+    @Published var hasLoadedOnce = false
     
     
     private var currentTask: Task<Void, Never>?
     private let courseLoader: CourseLoader
     private let scorer: CourseScoring
-    private var currentSkillLevel: SkillLevel = .midHandicap
+    private var currentSkillLevel: SkillLevel?
     
     
     init(courseLoader: CourseLoader, scorer: CourseScoring) {
@@ -108,6 +107,15 @@ final class RecommendationService: ObservableObject {
         using location: CLLocation,
         forceReload: Bool = false
     ) {
+        
+        let skillLevelChanged = currentSkillLevel != nil && currentSkillLevel != skillLevel
+
+        
+        if hasLoadedOnce && !forceReload && !skillLevelChanged
+        {
+            return
+        }
+        
         currentTask?.cancel()
         currentSkillLevel = skillLevel
         
@@ -118,24 +126,36 @@ final class RecommendationService: ObservableObject {
             self.loadingProgress = 0
             self.isLoading = true
             
-            if forceReload {
+            if forceReload || skillLevelChanged {
                 self.recommendedCourses = []
             }
             
             do {
+                var allCourses: [GolfCourse] = []
+                
                 _ = try await self.courseLoader.loadCoursesIncrementally(
                     location: location,
-                    maxCourses: 60,
-                    forceReload: forceReload,
+                    skillLevel: skillLevel,
+                    maxCourses: 100,
+                    forceReload: forceReload || skillLevelChanged,
                     onCourseReady: { [weak self] course in
-                        self?.insertCourseSorted(course)
+                        allCourses.append(course)
                     },
                     onProgress: { [weak self] progress in
                         self?.loadingProgress = progress
                     }
                 )
                 
+                let sorted = allCourses.sorted {
+                        self.scorer.score(course: $0, skillLevel: skillLevel) <  
+                        self.scorer.score(course: $1, skillLevel: skillLevel)
+                    }
+                
+                    
+                self.recommendedCourses = Array(sorted.prefix(40))
+                
                 self.isLoading = false
+                self.hasLoadedOnce = true
                 self.loadingProgress = 1.0
                 
             } catch is CancellationError {
@@ -149,10 +169,11 @@ final class RecommendationService: ObservableObject {
     
     
     private func insertCourseSorted(_ course: GolfCourse) {
-        let score = scorer.score(course: course, skillLevel: currentSkillLevel)
+        guard let curSkill = currentSkillLevel else { return }
+        let score = scorer.score(course: course, skillLevel: curSkill)
         
         let insertIndex = recommendedCourses.firstIndex { existing in
-            scorer.score(course: existing, skillLevel: currentSkillLevel) > score
+            scorer.score(course: existing, skillLevel: curSkill) > score
         } ?? recommendedCourses.count
         
         guard !recommendedCourses.contains(where: { $0.id == course.id }) else { return }

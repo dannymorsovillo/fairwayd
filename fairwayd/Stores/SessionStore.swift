@@ -294,9 +294,6 @@ struct User {
     let email: String
     let username: String?
     var skillLevel: SkillLevel?
-    var homeCourse: String?
-    var city: String?
-    var state: String?
 }
 
 struct ProfileData {

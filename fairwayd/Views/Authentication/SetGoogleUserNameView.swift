@@ -16,22 +16,19 @@ struct SetGoogleUserNameView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        VStack {
         Form {
-            Section("Username") {
-                TextField("Enter username", text: $username)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-            }
-
+            TextField("Enter username", text: $username)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+            
             if let errorMessage {
-                Section {
                     Text(errorMessage)
                         .foregroundStyle(.red)
                         .font(.caption)
                 }
             }
 
-            Section {
                 Button {
                     saveUsername()
                 } label: {
@@ -45,14 +42,14 @@ struct SetGoogleUserNameView: View {
                             .bold()
                     }
                 }
-                .disabled(isSaving || username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(isSaving || username.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(Color.green)
                 .foregroundColor(.white)
                 .cornerRadius(10)
+                .padding()
             }
-        }
         .navigationTitle("Set Username")
         .onAppear {
             username = session.currentUser?.username ?? ""
@@ -83,3 +80,4 @@ struct SetGoogleUserNameView: View {
         }
     }
 }
+

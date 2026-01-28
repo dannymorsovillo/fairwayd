@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct RecommendationsView: View {
     @EnvironmentObject var service: GolfCourseService
@@ -15,7 +16,6 @@ struct RecommendationsView: View {
     @EnvironmentObject var session: SessionStore
     @EnvironmentObject var recommendationService: RecommendationService
     
-    @State private var hasLoadedCourses = false
     @State private var showRecInfo = false
     
     private let columns = [
@@ -66,26 +66,27 @@ struct RecommendationsView: View {
         .task {
             locationManager.requestLocation()
         }
-        .onChange(of: locationManager.location) { _, newLocation in
-            guard let loc = newLocation, !hasLoadedCourses else { return }
-            
-            recommendationService.loadRecCourses(
-                for: session.currentUser?.skillLevel ?? .midHandicap,
-                using: loc
-            )
-            hasLoadedCourses = true
+        .onChange(of: loadTrigger) { _, _ in
+            guard
+                let loc = locationManager.location,
+                let skillLevel = session.currentUser?.skillLevel
+            else { return }
+                recommendationService.loadRecCourses(for: skillLevel, using: loc)
         }
         .refreshable {
-            guard let loc = locationManager.location else { return }
-            
-            recommendationService.loadRecCourses(
-                for: session.currentUser?.skillLevel ?? .midHandicap,
-                using: loc,
-                forceReload: true
-            )
+            guard
+                let loc = locationManager.location,
+                let skillLevel = session.currentUser?.skillLevel
+            else { return }
+            recommendationService.loadRecCourses(for: skillLevel, using: loc, forceReload: true)
         }
     }
     
+    // string trigger to combine both .onChange properties
+    private var loadTrigger: String {
+        let loc = locationManager.location.map { "\($0.coordinate.latitude),\($0.coordinate.longitude)" } ?? ""
+        return "\(loc)-\(session.currentUser?.skillLevel?.rawValue ?? "")"
+    }
  
     // subviews
     private var loadingView: some View {
