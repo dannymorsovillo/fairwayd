@@ -1,6 +1,6 @@
 # Fairwayd
 
-Fairwayd is an iOS application that allows users to find, search, and receive AI-based recommendations for golf courses determined by their skill level.
+Fairwayd is an iOS application that allows users to find, search, review, and receive AI-based recommendations for golf courses determined by their skill level.
 
 ## Screenshots
 
