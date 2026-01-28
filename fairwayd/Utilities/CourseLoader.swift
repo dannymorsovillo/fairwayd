@@ -57,7 +57,7 @@ final class CourseLoader {
     ) async throws -> [GolfCourse] {
         
         // Check cache first
-        if !forceReload, let cached = await courseCache.get(for: location) {
+        if !forceReload, let cached = await courseCache.get(for: location, skillLevel: skillLevel) {
             for course in cached {
                 onCourseReady(course)
             }
@@ -122,7 +122,7 @@ final class CourseLoader {
         }
         
         // Cache the results
-        await courseCache.set(matchedCourses, for: location)
+        await courseCache.set(matchedCourses, for: location, skillLevel: skillLevel)
         
         return matchedCourses
     }

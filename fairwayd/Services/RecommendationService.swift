@@ -35,7 +35,7 @@ struct MLBasedCourseScorer: CourseScoring {
               let bogey_rating = tee.bogey_rating,
               let par = tee.par_total,
               let total_yards = tee.total_yards else {
-            return Double.greatestFiniteMagnitude // Push to end if no data
+            return Double.greatestFiniteMagnitude
         }
 
         let input = fairwaydML_2Input(
@@ -79,12 +79,10 @@ final class RecommendationService: ObservableObject {
     @Published var isLoading = false
     @Published var hasLoadedOnce = false
     
-    
     private var currentTask: Task<Void, Never>?
     private let courseLoader: CourseLoader
     private let scorer: CourseScoring
     private var currentSkillLevel: SkillLevel?
-    
     
     init(courseLoader: CourseLoader, scorer: CourseScoring) {
         self.courseLoader = courseLoader
@@ -107,12 +105,9 @@ final class RecommendationService: ObservableObject {
         using location: CLLocation,
         forceReload: Bool = false
     ) {
-        
         let skillLevelChanged = currentSkillLevel != nil && currentSkillLevel != skillLevel
 
-        
-        if hasLoadedOnce && !forceReload && !skillLevelChanged
-        {
+        if hasLoadedOnce && !forceReload && !skillLevelChanged {
             return
         }
         
@@ -138,7 +133,7 @@ final class RecommendationService: ObservableObject {
                     skillLevel: skillLevel,
                     maxCourses: 100,
                     forceReload: forceReload || skillLevelChanged,
-                    onCourseReady: { [weak self] course in
+                    onCourseReady: { course in
                         allCourses.append(course)
                     },
                     onProgress: { [weak self] progress in
@@ -146,11 +141,10 @@ final class RecommendationService: ObservableObject {
                     }
                 )
                 
+                // Sort using combined score (ML + difficulty penalty)
                 let sorted = allCourses.sorted {
-                        self.scorer.score(course: $0, skillLevel: skillLevel) <  
-                        self.scorer.score(course: $1, skillLevel: skillLevel)
-                    }
-                
+                    self.combinedScore(course: $0, skillLevel: skillLevel) < self.combinedScore(course: $1, skillLevel: skillLevel)
+                }
                     
                 self.recommendedCourses = Array(sorted.prefix(40))
                 
@@ -168,16 +162,26 @@ final class RecommendationService: ObservableObject {
     }
     
     
-    private func insertCourseSorted(_ course: GolfCourse) {
-        guard let curSkill = currentSkillLevel else { return }
-        let score = scorer.score(course: course, skillLevel: curSkill)
+    private func combinedScore(course: GolfCourse, skillLevel: SkillLevel) -> Double {
+        let mlScore = scorer.score(course: course, skillLevel: skillLevel)
+        let penalty = difficultyPenalty(course: course, skillLevel: skillLevel)
         
-        let insertIndex = recommendedCourses.firstIndex { existing in
-            scorer.score(course: existing, skillLevel: curSkill) > score
-        } ?? recommendedCourses.count
-        
-        guard !recommendedCourses.contains(where: { $0.id == course.id }) else { return }
-        
-        recommendedCourses.insert(course, at: insertIndex)
+        return mlScore + penalty
     }
+    
+    private func difficultyPenalty(course: GolfCourse, skillLevel: SkillLevel) -> Double {
+        guard let slope = course.bestSlopeRating else { return 10.0 }
+        
+        // Derived from training data: avg slope where score_diff is in ideal range
+        let ideal: Double = switch skillLevel {
+        case .scratch:     129  // score_diff 0 to +4
+        case .lowHandicap: 126  // score_diff +4 to +8
+        case .midHandicap: 120  // score_diff +10 to +16
+        case .highHandicap: 117 // score_diff +18 to +26
+        }
+        
+        let diff = abs(Double(slope) - ideal)
+        return diff * 0.3
+    }
+    
 }

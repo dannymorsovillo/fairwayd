@@ -17,7 +17,7 @@ struct ProfileFormView: View {
     
     let mode: ProfileFormMode
     
-    @State private var selectedSkillLevel: SkillLevel = .midHandicap
+    @State private var selectedSkillLevel: SkillLevel?
     @State private var isLoading = false
     @State private var errorMessage: String?
     
@@ -118,7 +118,8 @@ struct ProfileFormView: View {
         
         Task {
             do {
-                try await session.updateProfile(skillLevel: selectedSkillLevel)
+                guard let skillLevel = selectedSkillLevel else { return }
+                try await session.updateProfile(skillLevel: skillLevel)
                 await MainActor.run {
                     isLoading = false
                 }

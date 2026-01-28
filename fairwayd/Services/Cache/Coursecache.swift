@@ -1,5 +1,5 @@
 //
-//  Coursecache.swift
+//  CourseCache.swift
 //  fairwayd
 //
 //  Created by Danny Morsovillo on 1/14/26.
@@ -17,8 +17,8 @@ actor CourseCache {
         let location: CLLocation
     }
     
-    func get(for location: CLLocation) -> [GolfCourse]? {
-        let key = locationKey(location)
+    func get(for location: CLLocation, skillLevel: SkillLevel? = nil) -> [GolfCourse]? {
+        let key = cacheKey(location: location, skillLevel: skillLevel)
         
         guard let cached = cache[key] else { return nil }
         
@@ -34,8 +34,8 @@ actor CourseCache {
         return cached.courses
     }
     
-    func set(_ courses: [GolfCourse], for location: CLLocation) {
-        let key = locationKey(location)
+    func set(_ courses: [GolfCourse], for location: CLLocation, skillLevel: SkillLevel? = nil) {
+        let key = cacheKey(location: location, skillLevel: skillLevel)
         cache[key] = CachedData(
             courses: courses,
             timestamp: Date(),
@@ -54,9 +54,20 @@ actor CourseCache {
         }
     }
     
-    private func locationKey(_ location: CLLocation) -> String {
+    func clear(for skillLevel: SkillLevel) {
+        cache = cache.filter { key, _ in
+            !key.hasSuffix(":\(skillLevel.rawValue)")
+        }
+    }
+    
+    private func cacheKey(location: CLLocation, skillLevel: SkillLevel?) -> String {
         let lat = (location.coordinate.latitude * 10).rounded() / 10
         let lon = (location.coordinate.longitude * 10).rounded() / 10
-        return "\(lat),\(lon)"
+        let locationPart = "\(lat),\(lon)"
+        
+        if let skillLevel = skillLevel {
+            return "\(locationPart):\(skillLevel.rawValue)"
+        }
+        return locationPart
     }
 }
