@@ -5,6 +5,7 @@
 //  Created by Danny Morsovillo on 12/17/25.
 //
 import Foundation
+import CoreLocation
 
 struct SearchResponse: Codable {
     let courses: [GolfCourse]
@@ -22,8 +23,6 @@ struct GolfCourse: Codable, Identifiable{
     let course_name: String?
     let location: Location?
     let tees: Tees?
-    let city: String?
-    let state: String?
     let phone: String?
     let website: String?
 }
@@ -35,6 +34,22 @@ struct Location: Codable {
     let country: String?
     let latitude: Double?
     let longitude: Double?
+}
+
+extension Location {
+    /// For feeds that supply a position and a single address string but no
+    /// city/state breakdown — e.g. the nearby-courses endpoint.
+    init(address: String?, latitude: Double?, longitude: Double?) {
+        self.init(
+            address: address,
+            city: nil,
+            state: nil,
+            country: nil,
+            latitude: latitude,
+            
+            longitude: longitude
+        )
+    }
 }
 
 struct Tees: Codable {
@@ -87,6 +102,14 @@ extension GolfCourse {
         let state = location?.state ?? ""
         let combo = [city, state].filter { !$0.isEmpty }.joined(separator: ", ")
         return combo.isEmpty ? (location?.country ?? "Unknown Location") : combo
+    }
+
+    /// Nil when either coordinate is missing — several providers populate only
+    /// an address string.
+    var coordinate: CLLocation? {
+        guard let latitude = location?.latitude,
+              let longitude = location?.longitude else { return nil }
+        return CLLocation(latitude: latitude, longitude: longitude)
     }
 
     var allTees: [Tee] { (tees?.male ?? []) + (tees?.female ?? []) }

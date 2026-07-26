@@ -14,17 +14,20 @@ struct fairwaydApp: App {
     @StateObject private var reviewService = ReviewService()
     @StateObject private var engagementStore = EngagementStore()
     @StateObject private var locationManager = LocationManager()
+    @StateObject private var chatService = ChatService()
     
     @StateObject private var service = GolfCourseService()
     @StateObject private var finderService: GolfCourseFinderService
     @StateObject private var exploreService: ExploreService
     @StateObject private var recommendationService: RecommendationService
     
+    @MainActor
     init() {
         let locationMgr = LocationManager()
         let engageStore = EngagementStore()
         let golfService = GolfCourseService()
         let finder = GolfCourseFinderService(locationManager: locationMgr)
+        let courseLoader = CourseLoader(service: golfService, finderService: finder)
         
         _locationManager = StateObject(wrappedValue: locationMgr)
         _engagementStore = StateObject(wrappedValue: engageStore)
@@ -32,11 +35,11 @@ struct fairwaydApp: App {
         _finderService = StateObject(wrappedValue: finder)
         
         _exploreService = StateObject(wrappedValue: ExploreService(
+            courseLoader: courseLoader,
             service: golfService,
-            finderService: finder,
-            store: engageStore,
             locationManager: locationMgr
         ))
+        
         
         let scorer: CourseScoring
         do {
@@ -50,10 +53,7 @@ struct fairwaydApp: App {
         }
         
         _recommendationService = StateObject(wrappedValue: RecommendationService(
-            service: golfService,
-            finderService: finder,
-            store: engageStore,
-            locationManager: locationMgr,
+            courseLoader: courseLoader,
             scorer: scorer
         ))
     }
@@ -75,6 +75,7 @@ struct fairwaydApp: App {
             .environmentObject(finderService)
             .environmentObject(exploreService)
             .environmentObject(recommendationService)
+            .environmentObject(chatService)
             .task {
                 session.engagementStore = engagementStore
             }

@@ -175,17 +175,40 @@ final class CourseLoader {
     }
     
     
+    /// How close two providers' coordinates must be to be considered the same
+    /// course. Resorts cluster tightly — Spyglass Hill sits ~1.6km from The Hay
+    /// at Pebble Beach — so this is deliberately near the low end.
+    private static let coordinateMatchMetres: CLLocationDistance = 2_000
+
     private func matchCourse(_ course: GolfCourse, location: CLLocation) async -> GolfCourse? {
         do {
             let results = try await service.searchCourses(query: course.course_name ?? "")
-            return results.first { candidate in
-                guard let lat = candidate.location?.latitude,
-                      let lon = candidate.location?.longitude else {
-                    return false
+            let target = normalizeCourseName(course.titleText)
+
+            // Name is the only signal available across both providers:
+            // golfcourseapi returns an address but no coordinates, so a distance
+            // test against a search result rejects everything.
+            let matches = results.filter { normalizeCourseName($0.titleText) == target }
+            guard !matches.isEmpty else { return nil }
+
+            // A name query can return several courses that share a name in
+            // different states ("Pine Ridge Country Club" ×4). Prefer the closest
+            // when coordinates exist on both sides; otherwise take the first.
+            if let origin = course.coordinate {
+                let nearest = matches
+                    .compactMap { candidate -> (course: GolfCourse, metres: CLLocationDistance)? in
+                        guard let candidateLocation = candidate.coordinate else { return nil }
+                        let metres = origin.distance(from: candidateLocation)
+                        return metres <= Self.coordinateMatchMetres ? (candidate, metres) : nil
+                    }
+                    .min { $0.metres < $1.metres }
+
+                if let nearest {
+                    return nearest.course
                 }
-                let distance = location.distance(from: CLLocation(latitude: lat, longitude: lon)) / 1609.34
-                return distance <= 50 && normalizeCourseName(candidate.titleText) == normalizeCourseName(course.titleText)
             }
+
+            return matches.first
         } catch {
             return nil
         }

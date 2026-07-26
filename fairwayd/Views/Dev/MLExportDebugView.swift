@@ -82,9 +82,7 @@ struct MLExportDebugView: View {
                 )
                 
                 let coursesToProcess = nearbyClubs
-                    .flatMap { club in
-                        club.golf_courses.map { (clubName: club.club_name, courseName: $0.course_name) }
-                    }
+                    .map { (clubName: $0.name, courseName: $0.name) }
                     .prefix(20)
                 
                 let matchedCourses = await withTaskGroup(of: GolfCourse?.self) { group -> [GolfCourse] in

@@ -13,6 +13,7 @@
 		305112212F00EBDC00AD57C7 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 305112202F00EBDC00AD57C7 /* Realtime */; };
 		305112232F00EBDC00AD57C7 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 305112222F00EBDC00AD57C7 /* Storage */; };
 		3051122C2F00EE7A00AD57C7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 3051122B2F00EE7A00AD57C7 /* Supabase */; };
+		309884863016676900BC153E /* ExyteChat in Frameworks */ = {isa = PBXBuildFile; productRef = 309884853016676900BC153E /* ExyteChat */; };
 		309AEF972F24837700CFDB73 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 309AEF962F24837700CFDB73 /* GoogleSignIn */; };
 		309AEF992F24837700CFDB73 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 309AEF982F24837700CFDB73 /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
@@ -52,6 +53,7 @@
 				3051122C2F00EE7A00AD57C7 /* Supabase in Frameworks */,
 				309AEF992F24837700CFDB73 /* GoogleSignInSwift in Frameworks */,
 				3051121B2F00EBDC00AD57C7 /* Auth in Frameworks */,
+				309884863016676900BC153E /* ExyteChat in Frameworks */,
 				305112232F00EBDC00AD57C7 /* Storage in Frameworks */,
 				305112212F00EBDC00AD57C7 /* Realtime in Frameworks */,
 				309AEF972F24837700CFDB73 /* GoogleSignIn in Frameworks */,
@@ -113,6 +115,7 @@
 				3051122B2F00EE7A00AD57C7 /* Supabase */,
 				309AEF962F24837700CFDB73 /* GoogleSignIn */,
 				309AEF982F24837700CFDB73 /* GoogleSignInSwift */,
+				309884853016676900BC153E /* ExyteChat */,
 			);
 			productName = fairwayd;
 			productReference = 301B51582EC5795100A32581 /* fairwayd.app */;
@@ -145,6 +148,7 @@
 			packageReferences = (
 				305112192F00EBDC00AD57C7 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				309AEF952F24837700CFDB73 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				309884843016676900BC153E /* XCRemoteSwiftPackageReference "chat" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 301B51592EC5795100A32581 /* Products */;
@@ -398,6 +402,14 @@
 				minimumVersion = 2.5.1;
 			};
 		};
+		309884843016676900BC153E /* XCRemoteSwiftPackageReference "chat" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/exyte/chat";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.2.4;
+			};
+		};
 		309AEF952F24837700CFDB73 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
@@ -438,6 +450,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 305112192F00EBDC00AD57C7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		309884853016676900BC153E /* ExyteChat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 309884843016676900BC153E /* XCRemoteSwiftPackageReference "chat" */;
+			productName = ExyteChat;
 		};
 		309AEF962F24837700CFDB73 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;

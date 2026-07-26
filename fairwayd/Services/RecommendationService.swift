@@ -174,10 +174,10 @@ final class RecommendationService: ObservableObject {
         
         // Derived from training data: avg slope where score_diff is in ideal range
         let ideal: Double = switch skillLevel {
-        case .scratch:     129  // score_diff 0 to +4
-        case .lowHandicap: 126  // score_diff +4 to +8
-        case .midHandicap: 120  // score_diff +10 to +16
-        case .highHandicap: 117 // score_diff +18 to +26
+        case .scratch:      129  // score_diff 0 to +4
+        case .lowHandicap:  126  // score_diff +4 to +8
+        case .midHandicap:  120  // score_diff +10 to +16
+        case .highHandicap: 117  // score_diff +18 to +26
         }
         
         let diff = abs(Double(slope) - ideal)

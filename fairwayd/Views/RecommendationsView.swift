@@ -59,12 +59,23 @@ struct RecommendationsView: View {
         }
         .navigationTitle("AI Recommendations")
         .toolbar {
-            ToolbarItem {
+            ToolbarItem(placement: .topBarLeading) {
+                chatBotButton
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 moreInfoButton
             }
         }
         .task {
             locationManager.requestLocation()
+
+            // Location and skill level are usually already resolved by the time
+            // this tab appears, so `loadTrigger` never changes and .onChange
+            // alone would never fire. loadRecCourses is idempotent.
+            if let loc = locationManager.location,
+               let skillLevel = session.currentUser?.skillLevel {
+                recommendationService.loadRecCourses(for: skillLevel, using: loc)
+            }
         }
         .onChange(of: loadTrigger) { _, _ in
             guard
@@ -119,12 +130,20 @@ struct RecommendationsView: View {
         .padding(.top, 8)
     }
     
+    private var chatBotButton: some View {
+        NavigationLink {
+            ChatBotView()
+        } label : {
+            Image(systemName: "message.badge.waveform.fill")
+        }
+        .buttonStyle(.borderless)
+    }
+    
     private var moreInfoButton: some View {
         Button("Read more") {
             showRecInfo = true
         }
         .buttonStyle(.borderless)
-        .padding()
         .sheet(isPresented: $showRecInfo) {
             RecView()
                 .presentationDetents([.height(500)])
@@ -177,3 +196,5 @@ struct RecView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
+
+
