@@ -30,7 +30,6 @@ struct AuthLandingView: View {
                 
                 Text("Find the course for you.")
                     .foregroundColor(.white.opacity(0.8))
-                
                
                 VStack(spacing: 16) {
                     Button {
@@ -41,9 +40,8 @@ struct AuthLandingView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.white)
-                    .foregroundColor(.green)
+                    .liquidGlass()
+                    .tint(.black)
                     
                     Button {
                             mode = .signup
@@ -53,9 +51,8 @@ struct AuthLandingView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.white)
-                    .foregroundColor(.green)
+                    .liquidGlass()
+                    .tint(.black)
                 }
                 .padding(.horizontal, 40)
                 
@@ -65,5 +62,7 @@ struct AuthLandingView: View {
         .ignoresSafeArea()
     }
 }
-
+#Preview {
+    AuthLandingView(mode: .constant(.landing))
+}
 

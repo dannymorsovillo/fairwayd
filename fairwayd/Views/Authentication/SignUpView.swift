@@ -21,12 +21,15 @@ struct SignUpView: View {
     var body: some View {
         VStack(spacing: 20) {
             HStack {
-                Button("Back") {
+                Button(action: {
                     mode = .landing
                     session.errorMessage = nil
-                }
-                .tint(.green)
-                Spacer()
+                }) {
+                        Image(systemName: "chevron.left")
+                    }
+                    .liquidGlass()
+                    .tint(.green)
+                    Spacer()
             }
             
             Text("fairwayd")
@@ -43,29 +46,25 @@ struct SignUpView: View {
                     .autocorrectionDisabled(true)
                     .keyboardType(.emailAddress)
                     .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
+                    .liquidGlass()
                 
                 TextField("Username", text: $username)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
+                    .liquidGlass()
                 
                 SecureField("Password", text: $password)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
+                    .liquidGlass()
                 
                 SecureField("Confirm Password", text: $confirmPassword)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
+                    .liquidGlass()
                 
                 if let errorMessage = session.errorMessage {
                     Text(errorMessage)
@@ -90,7 +89,7 @@ struct SignUpView: View {
                             .font(.headline)
                     }
                 }
-                .buttonStyle(.borderless)
+                .liquidGlass()
                 .tint(.green)
                 .disabled(session.isLoading)
                 

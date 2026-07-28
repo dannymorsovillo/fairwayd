@@ -101,7 +101,7 @@ struct ExploreView: View {
             Button("Search") {
                 exploreService.search()
             }
-            .buttonStyle(.borderedProminent)
+            .liquidGlass()
         }
         .padding(.horizontal)
     }
@@ -189,6 +189,92 @@ struct ExploreView: View {
         .animation(.easeInOut(duration: 0.3), value: exploreService.topBogeyCourses.count)
     }
 }
+
+
+#Preview {
+    // Every @EnvironmentObject the view (or its children) reads must be supplied —
+    // CourseCardView pulls EngagementStore out of the environment too.
+    let locationManager = LocationManager()
+    let service = GolfCourseService()
+    let store = EngagementStore()
+    let finderService = GolfCourseFinderService(locationManager: locationManager)
+    let exploreService = ExploreService(
+        service: service,
+        finderService: finderService,
+        store: store,
+        locationManager: locationManager
+    )
+
+    // Seed content so the preview shows cards instead of a spinner — location
+    // never resolves in the canvas, so the real load path can't populate it.
+    exploreService.topRatedCourses = GolfCourse.previewCourses
+    exploreService.topSlopeCourses = GolfCourse.previewCourses.reversed()
+    exploreService.loadingProgress = 1.0
+    exploreService.hasLoadedCourses = true
+
+    return NavigationStack {
+        ExploreView()
+    }
+    .environmentObject(service)
+    .environmentObject(finderService)
+    .environmentObject(locationManager)
+    .environmentObject(exploreService)
+    .environmentObject(store)
+}
+
+#if DEBUG
+extension GolfCourse {
+    /// Sample data for previews only.
+    static let previewCourses: [GolfCourse] = [
+        make(id: 1, name: "Beverly Country Club", city: "Chicago", state: "IL",
+             rating: 71.9, slope: 135, bogey: 92.4, yards: 6536, par: 71),
+        make(id: 2, name: "Jackson Park Golf Course", city: "Chicago", state: "IL",
+             rating: 68.2, slope: 118, bogey: 88.1, yards: 5538, par: 70),
+        make(id: 3, name: "Harborside International", city: "Chicago", state: "IL",
+             rating: 74.1, slope: 132, bogey: 95.8, yards: 7166, par: 72),
+        make(id: 4, name: "Sydney R. Marovitz", city: "Chicago", state: "IL",
+             rating: 65.4, slope: 112, bogey: 84.9, yards: 3265, par: 36)
+    ]
+
+    private static func make(
+        id: Int, name: String, city: String, state: String,
+        rating: Double, slope: Int, bogey: Double, yards: Int, par: Int
+    ) -> GolfCourse {
+        GolfCourse(
+            id: id,
+            placeID: nil,
+            club_name: name,
+            course_name: name,
+            location: Location(
+                address: nil, city: city, state: state,
+                country: "United States", latitude: 41.87, longitude: -87.62
+            ),
+            tees: Tees(
+                female: nil,
+                male: [Tee(
+                    tee_name: "Blue",
+                    course_rating: rating,
+                    slope_rating: slope,
+                    bogey_rating: bogey,
+                    total_yards: yards,
+                    total_meters: nil,
+                    number_of_holes: par > 50 ? 18 : 9,
+                    par_total: par,
+                    front_course_rating: nil,
+                    front_slope_rating: nil,
+                    front_bogey_rating: nil,
+                    back_course_rating: nil,
+                    back_slope_rating: nil,
+                    back_bogey_rating: nil,
+                    holes: nil
+                )]
+            ),
+            phone: "773-555-0100",
+            website: "https://example.com"
+        )
+    }
+}
+#endif
 
 
 // top section view

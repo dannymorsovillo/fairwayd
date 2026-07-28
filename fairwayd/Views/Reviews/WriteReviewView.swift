@@ -399,7 +399,7 @@ struct CameraView: View {
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .buttonStyle(.borderedProminent)
+                .liquidGlass()
                 
                 Button {
                     showPhotoLibrary = true
@@ -413,13 +413,13 @@ struct CameraView: View {
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .buttonStyle(.borderedProminent)
+                .liquidGlass()
                 
                 if !capturedImages.isEmpty || !existingPhotoUrls.isEmpty {
                     Button("Done") {
                         dismiss()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .liquidGlass()
                 }
             }
             .padding()
