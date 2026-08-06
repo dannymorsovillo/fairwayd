@@ -61,7 +61,6 @@ struct ChatBotView: View {
             messageMyTimeText: .white,
             sendButtonBackground: .green
         ))
-       // .liquidGlass()
         
     }
     

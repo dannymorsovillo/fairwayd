@@ -251,6 +251,7 @@ struct LeaveReviewTabView: View {
     @EnvironmentObject var reviewService: ReviewService
     @EnvironmentObject var session: SessionStore
     @State private var isLoading = false
+    @State private var hasLoaded = false
     @State private var errorText = ""
     @State private var showWriteReview = false
     @State private var showDeleteAlert = false
@@ -271,7 +272,8 @@ struct LeaveReviewTabView: View {
         .navigationTitle("Your Review History")
         .toolbar { toolbarContent }
         .task { await loadIfAuthenticated() }
-        .refreshable { await loadIfAuthenticated() }
+        .refreshable {
+            await loadIfAuthenticated() }
         .sheet(isPresented: $showWriteReview, onDismiss: { Task { await loadUserReviews() } }) {
             WriteReviewView()
         }
@@ -327,7 +329,7 @@ struct LeaveReviewTabView: View {
     
     @ViewBuilder
     private var reviewContent: some View {
-        if isLoading {
+        if isLoading && !hasLoaded{
             Text("Loading reviews")
                 .frame(maxWidth: .infinity)
         } else if !errorText.isEmpty {
@@ -444,7 +446,10 @@ struct LeaveReviewTabView: View {
         
         isLoading = true
         errorText = ""
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            hasLoaded = true
+        }
 
         do {
             _ = try await reviewService.fetchUserReviews()

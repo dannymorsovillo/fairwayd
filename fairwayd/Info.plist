@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>GIDClientID</key>
-	<string>100406017850-jkf66338nefg5gkpjnj8an0uk3uhh9e2.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -15,11 +13,9 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>We nee camera access to take photos</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to show nearby golf courses&lt;</string>
-	<key>UILaunchStoryboardName</key>
-	<string>Launch Screen</string>
+	<key>GIDClientID</key>
+	<string>100406017850-jkf66338nefg5gkpjnj8an0uk3uhh9e2.apps.googleusercontent.com</string>
+	<key>UILaunchScreen</key>
+	<false/>
 </dict>
 </plist>
