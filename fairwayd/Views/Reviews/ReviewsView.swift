@@ -102,7 +102,7 @@ struct ReviewPhotoGrid: View {
 
 
 struct ReviewsView: View {
-    let courseID: Int
+    let courseID: String
     let courseName: String
     
     @EnvironmentObject var reviewService: ReviewService
@@ -151,7 +151,7 @@ struct ReviewsView: View {
         }
     }
     
-    private var showingImageViewer: Binding<Bool> {
+    private var showingImageViewer: Binding<Bool> { 
         Binding(
             get: { selectedImageUrls != nil },
             set: { if !$0 { selectedImageUrls = nil } }
@@ -161,7 +161,7 @@ struct ReviewsView: View {
     @ViewBuilder
     private var reviewContent: some View {
         if isLoading {
-            ProgressView("Loading reviews…")
+            Text("Loading reviews…")
                 .frame(maxWidth: .infinity)
         } else if !errorText.isEmpty {
             Text(errorText)
@@ -328,7 +328,7 @@ struct LeaveReviewTabView: View {
     @ViewBuilder
     private var reviewContent: some View {
         if isLoading {
-            ProgressView("Loading your reviews…")
+            Text("Loading reviews")
                 .frame(maxWidth: .infinity)
         } else if !errorText.isEmpty {
             Text(errorText)

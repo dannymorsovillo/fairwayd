@@ -10,7 +10,7 @@ import Combine
 import Supabase
 
 struct CourseSnapshot: Identifiable, Codable {
-    let id: Int
+    let id: String
     let title: String
     let subtitle: String
     let placeId: String?
@@ -28,8 +28,8 @@ struct CourseSnapshot: Identifiable, Codable {
 }
 
 final class EngagementStore: ObservableObject {
-    @Published var favorites: [Int] = []
-    @Published var snapshots: [Int: CourseSnapshot] = [:]
+    @Published var favorites: [String] = []
+    @Published var snapshots: [String: CourseSnapshot] = [:]
     @Published var isLoading = false
     
     
@@ -49,11 +49,11 @@ final class EngagementStore: ObservableObject {
         snapshots = [:]
     }
     
-    func isFavorite(_ id: Int) -> Bool {
+    func isFavorite(_ id: String) -> Bool {
         favorites.contains(id)
     }
     
-    func toggleFavorite(_ id: Int) async {
+    func toggleFavorite(_ id: String) async {
         guard userId != nil else { return }
         
         if favorites.contains(id) {
@@ -65,7 +65,7 @@ final class EngagementStore: ObservableObject {
         }
     }
     
-    func saveSnapshot(id: Int, title: String, subtitle: String, placeId: String?, location: String?, userId: UUID?) {
+    func saveSnapshot(id: String, title: String, subtitle: String, placeId: String?, location: String?, userId: UUID?) {
         let snap = CourseSnapshot(
             id: id,
             title: title,
@@ -125,7 +125,7 @@ final class EngagementStore: ObservableObject {
         }
     }
     
-    private func removeFavorite(_ id: Int) async {
+    private func removeFavorite(_ id: String) async {
         guard let userId = userId else { return }
         
         do {

@@ -13,12 +13,12 @@ enum WriteReviewMode {
 }
 
 struct WriteReviewView: View {
-    let courseID: Int?
+    let courseID: String?
     let courseName: String?
     let accessMode: WriteReviewMode
     let existingReview: Review?
     
-    init(courseID: Int? = nil, courseName: String? = nil, existingReview: Review? = nil) {
+    init(courseID: String? = nil, courseName: String? = nil, existingReview: Review? = nil) {
         self.courseID = courseID
         self.courseName = courseName
         self.existingReview = existingReview
@@ -41,7 +41,7 @@ struct WriteReviewView: View {
     @State private var capturedImages: [UIImage] = []
     @State private var isSubmitting = false
     @State private var courseNameInput: String = ""
-    @State private var courseIDMapped: Int? = nil
+    @State private var courseIDMapped: String? = nil
     @State private var courseSuggestions: [GolfCourse] = []
     @State private var errorMessage = ""
     @State private var existingPhotoUrls: [String] = []

@@ -44,7 +44,7 @@ class ReviewService: ObservableObject {
                 .execute()
         }
         
-        func fetchReviews(for courseId: Int) async throws -> [Review] {
+        func fetchReviews(for courseId: String) async throws -> [Review] {
             let response = try await supabase
                 .from("reviews")
                 .select()
@@ -104,7 +104,7 @@ class ReviewService: ObservableObject {
             return fetchedReviews
         }
         
-        func getAverageRating(for courseId: Int) async throws -> Double {
+        func getAverageRating(for courseId: String) async throws -> Double {
             let reviews = try await fetchReviews(for: courseId)
             guard !reviews.isEmpty else { return 0 }
             let sum = reviews.reduce(0) { $0 + $1.rating }
@@ -124,7 +124,7 @@ class ReviewService: ObservableObject {
             let rating: Int
             let comment: String
             let course_name: String
-            let course_id: Int?
+            let course_id: String?
             let photo_urls: [String]?
         }
         

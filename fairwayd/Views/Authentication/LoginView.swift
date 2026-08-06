@@ -9,26 +9,12 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var session: SessionStore
-    @Binding var mode: AuthMode
-    
+
     @State private var email = ""
     @State private var password = ""
-    
+
     var body: some View {
         VStack(spacing: 20) {
-            HStack {
-                Button(action: {
-                        mode = .landing
-                        session.errorMessage = nil
-                }) {
-                    Image(systemName: "chevron.left")
-                }
-                .liquidGlass()
-                .tint(.green)
-                Spacer()
-            }
-            
-            
             Text("fairwayd")
                 .font(.largeTitle)
                 .bold()
@@ -95,10 +81,17 @@ struct LoginView: View {
         Spacer()
     }
         .padding()
-}
+        // The system back button pops without running any of our code, so the
+        // stale error has to be cleared on the way out.
+        .onDisappear { session.errorMessage = nil }
+    }
+
+ //private var
 }
 #Preview {
-    LoginView(mode: .constant(.login))
-        .environmentObject(SessionStore())
+    NavigationStack {
+        LoginView()
+    }
+    .environmentObject(SessionStore())
 }
 

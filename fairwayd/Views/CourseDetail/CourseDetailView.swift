@@ -9,7 +9,7 @@ import SwiftUI
 import CoreLocation
 
 struct CourseDetailView: View {
-    let courseID: Int
+    let courseID: String
     let courseCache: CourseCache
     
     @EnvironmentObject var store: EngagementStore

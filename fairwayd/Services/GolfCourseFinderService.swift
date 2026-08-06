@@ -27,7 +27,7 @@ struct NearbyCourse: Codable {
     /// Upstream UUID string. Named `source_id` to match the edge function, and
     /// deliberately not `id` so it can't be confused with `GolfCourse.id`,
     /// which is an Int from golfcourseapi.
-    let source_id: String?
+    let source_id: String
     let name: String
     let distance_km: Double?
     let latitude: Double?
@@ -51,14 +51,6 @@ struct NearbyCourse: Codable {
     /// FNV-1a rather than `hashValue`: Swift seeds `hashValue` per process, so
     /// the same course would get a different ID on every launch, breaking
     /// `$0.id == course.id` dedupe checks and favorites lookups.
-    var stableID: Int {
-        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
-        for byte in (source_id ?? name).utf8 {
-            hash ^= UInt64(byte)
-            hash = hash &* 0x100_0000_01b3
-        }
-        return Int(bitPattern: UInt(hash & 0x7FFF_FFFF_FFFF_FFFF))
-    }
 }
 
 
@@ -96,7 +88,7 @@ final class GolfCourseFinderService: ObservableObject {
     func mapNearbyClubsToGolfCourses(_ nearby: [NearbyCourse]) -> [GolfCourse] {
         nearby.map { course in
             GolfCourse(
-                id: course.stableID,
+                id: course.source_id,
                 placeID: nil,
                 club_name: course.name,
                 course_name: course.name,

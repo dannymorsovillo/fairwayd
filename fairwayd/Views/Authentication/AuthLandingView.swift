@@ -7,15 +7,15 @@
 
 import SwiftUI
 
-enum AuthMode {
-    case landing
+/// Push destinations for the unauthenticated flow. No `.landing` case — the
+/// landing screen is the stack's root, so "back" is a pop rather than a mode.
+enum AuthRoute: Hashable {
     case login
     case signup
 }
 
 struct AuthLandingView: View {
-    @Binding var mode: AuthMode
-    
+
     var body: some View {
         ZStack {
             Color.green
@@ -32,9 +32,7 @@ struct AuthLandingView: View {
                     .foregroundColor(.white.opacity(0.8))
                
                 VStack(spacing: 16) {
-                    Button {
-                            mode = .login
-                    } label: {
+                    NavigationLink(value: AuthRoute.login) {
                         Text("Log In")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
@@ -42,10 +40,8 @@ struct AuthLandingView: View {
                     }
                     .liquidGlass()
                     .tint(.black)
-                    
-                    Button {
-                            mode = .signup
-                    } label: {
+
+                    NavigationLink(value: AuthRoute.signup) {
                         Text("Sign Up")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
@@ -60,9 +56,12 @@ struct AuthLandingView: View {
             }
         }
         .ignoresSafeArea()
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 #Preview {
-    AuthLandingView(mode: .constant(.landing))
+    NavigationStack {
+        AuthLandingView()
+    }
 }
 

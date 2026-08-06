@@ -9,17 +9,16 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var session: SessionStore
-    @State private var mode: AuthMode = .landing
-    
+
     var body: some View {
         Group {
             if session.isAuthenticated {
                 AuthenticatedView()
             } else {
-                UnauthenticatedView(mode: $mode)
+                UnauthenticatedView()
             }
         }
-        .animation(.easeInOut, value: session.isAuthenticated)
+        //.animation(.easeInOut, value: session.isAuthenticated)
     }
 }
 
@@ -54,19 +53,20 @@ private struct AuthenticatedView: View {
 
 private struct UnauthenticatedView: View {
     @EnvironmentObject var session: SessionStore
-    @Binding var mode: AuthMode
-    
+
     var body: some View {
-        ZStack {
-            switch mode {
-            case .landing:
-                AuthLandingView(mode: $mode)
-            case .login:
-                LoginView(mode: $mode)
-            case .signup:
-                SignUpView(mode: $mode)
-            }
+        NavigationStack {
+            AuthLandingView()
+                .navigationDestination(for: AuthRoute.self) { route in
+                    switch route {
+                    case .login:
+                        LoginView()
+                    case .signup:
+                        SignUpView()
+                    }
+                }
         }
-        .animation(.easeInOut, value: mode)
+        // Colors the system back button on the pushed screens.
+        .tint(.green)
     }
 }

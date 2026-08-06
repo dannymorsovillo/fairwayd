@@ -58,11 +58,12 @@ import SwiftUI
                     Toggle(isOn: Binding(
                         get: { isDarkMode ?? false },
                         set: { isDarkMode = $0 }
-                    ).animation()) {
+                    )) {
                         Label(isDarkMode == true ? "Dark Mode" : "Light Mode",
                               systemImage: isDarkMode == true ? "moon.fill" : "sun.max.fill")
                         .foregroundStyle(.green)
                     }
+                    .liquidGlass()
                     .tint(.green)
                 }
                     
@@ -76,7 +77,7 @@ import SwiftUI
                             Text("Log out")
                             Spacer()
                         }
-                        .buttonStyle(.borderedProminent)
+                        .liquidGlass()
                     }
                 }
             }

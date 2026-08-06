@@ -8,7 +8,6 @@ import SwiftUI
 
 struct SignUpView: View {
     @EnvironmentObject var session: SessionStore
-    @Binding var mode: AuthMode
 
     @State private var email = ""
     @State private var username = ""
@@ -20,18 +19,6 @@ struct SignUpView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            HStack {
-                Button(action: {
-                    mode = .landing
-                    session.errorMessage = nil
-                }) {
-                        Image(systemName: "chevron.left")
-                    }
-                    .liquidGlass()
-                    .tint(.green)
-                    Spacer()
-            }
-            
             Text("fairwayd")
                 .font(.title)
                 .bold()
@@ -46,25 +33,25 @@ struct SignUpView: View {
                     .autocorrectionDisabled(true)
                     .keyboardType(.emailAddress)
                     .padding()
-                    .liquidGlass()
+                    .liquidGlassSurface()
                 
                 TextField("Username", text: $username)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .padding()
-                    .liquidGlass()
+                    .liquidGlassSurface()
                 
                 SecureField("Password", text: $password)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .padding()
-                    .liquidGlass()
+                    .liquidGlassSurface()
                 
                 SecureField("Confirm Password", text: $confirmPassword)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .padding()
-                    .liquidGlass()
+                    .liquidGlassSurface()
                 
                 if let errorMessage = session.errorMessage {
                     Text(errorMessage)
@@ -114,9 +101,14 @@ struct SignUpView: View {
             Spacer()
         }
         .padding()
+        // The system back button pops without running any of our code, so the
+        // stale error has to be cleared on the way out.
+        .onDisappear { session.errorMessage = nil }
     }
 }
 #Preview {
-    SignUpView(mode: .constant(.signup))
-        .environmentObject(SessionStore())
+    NavigationStack {
+        SignUpView()
+    }
+    .environmentObject(SessionStore())
 }

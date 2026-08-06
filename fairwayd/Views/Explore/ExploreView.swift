@@ -226,18 +226,18 @@ struct ExploreView: View {
 extension GolfCourse {
     /// Sample data for previews only.
     static let previewCourses: [GolfCourse] = [
-        make(id: 1, name: "Beverly Country Club", city: "Chicago", state: "IL",
+        make(id: "1", name: "Beverly Country Club", city: "Chicago", state: "IL",
              rating: 71.9, slope: 135, bogey: 92.4, yards: 6536, par: 71),
-        make(id: 2, name: "Jackson Park Golf Course", city: "Chicago", state: "IL",
+        make(id: "2", name: "Jackson Park Golf Course", city: "Chicago", state: "IL",
              rating: 68.2, slope: 118, bogey: 88.1, yards: 5538, par: 70),
-        make(id: 3, name: "Harborside International", city: "Chicago", state: "IL",
+        make(id: "3", name: "Harborside International", city: "Chicago", state: "IL",
              rating: 74.1, slope: 132, bogey: 95.8, yards: 7166, par: 72),
-        make(id: 4, name: "Sydney R. Marovitz", city: "Chicago", state: "IL",
+        make(id: "4", name: "Sydney R. Marovitz", city: "Chicago", state: "IL",
              rating: 65.4, slope: 112, bogey: 84.9, yards: 3265, par: 36)
     ]
 
     private static func make(
-        id: Int, name: String, city: String, state: String,
+        id: String, name: String, city: String, state: String,
         rating: Double, slope: Int, bogey: Double, yards: Int, par: Int
     ) -> GolfCourse {
         GolfCourse(

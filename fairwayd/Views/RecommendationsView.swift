@@ -177,8 +177,8 @@ struct RecView: View {
                     }
                 }
                 .padding(.horizontal, 2)
-                .fixedSize(horizontal: false, vertical: true) 
             }
+            .fixedSize(horizontal: false, vertical: true)
             
             Text("Scroll to see full row.")
                 .font(.caption.bold())

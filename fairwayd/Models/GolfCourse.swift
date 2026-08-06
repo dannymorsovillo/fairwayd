@@ -11,13 +11,12 @@ struct SearchResponse: Codable {
     let courses: [GolfCourse]
 }
 
-
 struct CourseResponse: Codable {
     let course: GolfCourse
 }
 
 struct GolfCourse: Codable, Identifiable{
-    let id: Int
+    let id: String
     let placeID: String?
     let club_name: String?
     let course_name: String?

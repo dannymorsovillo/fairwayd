@@ -15,7 +15,7 @@ struct SearchRequest: Codable {
 }
 
 struct CourseIDRequest: Codable {
-    let courseId: Int
+    let courseId: String
 }
 
 
@@ -28,13 +28,19 @@ final class GolfCourseService: ObservableObject {
     func searchCourses(query: String) async throws -> [GolfCourse] {
         let request = SearchRequest(query: query)
         let bodyData = try JSONEncoder().encode(request)
-        let searchResponse: SearchResponse =  try await supabase.functions.invoke(
-            "golf-course-search",
-            options: FunctionInvokeOptions(
-                body: bodyData
-            )
-        )
         
+        let searchResponse: SearchResponse
+        do {
+            searchResponse =  try await supabase.functions.invoke(
+                "golf-course-search",
+                options: FunctionInvokeOptions(
+                    body: bodyData
+                )
+            )
+        } catch {
+            print("Search request failed:", error)
+            throw error
+        }
         
         print("Decoded courses:", searchResponse.courses.map { $0.titleText })
         self.courses = searchResponse.courses
@@ -42,7 +48,7 @@ final class GolfCourseService: ObservableObject {
     }
 
     // MARK: - /v1/courses/{id}
-    func fetchCourse(id: Int) async throws -> GolfCourse {
+    func fetchCourse(id: String) async throws -> GolfCourse {
         let request = CourseIDRequest(courseId: id)
         let bodyData = try JSONEncoder().encode(request)
         let courseResponse: CourseResponse = try await supabase.functions.invoke(

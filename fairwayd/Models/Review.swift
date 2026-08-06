@@ -13,7 +13,7 @@ struct Review: Identifiable, Codable, Equatable {
     let rating: Int        // 1–5 stars
     let comment: String
     let courseName: String
-    let courseId: Int?
+    let courseId: String?
     let createdAt: Date?
     let photoUrls: [String]?
 
