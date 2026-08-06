@@ -22,6 +22,16 @@ struct CourseDetailView: View {
     @State private var isLoading = false
     @State private var selectedTeeIndex = 0
     
+    private var selectedTeeName: String {
+        guard let course = course,
+              selectedTeeIndex < course.allTees.count else {
+            return "No tee selected"
+        }
+        
+        let tee = course.allTees[selectedTeeIndex]
+        return tee.tee_name ?? "Tee \(selectedTeeIndex + 1)"
+    }
+
 
     var body: some View {
         ScrollView {
@@ -75,7 +85,8 @@ struct CourseDetailView: View {
         return HStack(spacing: 16) {
             stat("Rating", bestTee?.course_rating.map { String(format: "%.1f", $0) })
             stat("Slope", bestTee?.slope_rating.map(String.init))
-            stat("Bogey", bestTee?.bogey_rating.map { String(format: "%.1f", $0) })
+            ///Current RapidAPI does not have a bogey endpoint
+            //stat("Bogey", bestTee?.bogey_rating.map { String(format: "%.1f", $0) })
             stat("Par", bestTee?.par_total.map(String.init))
             stat("Yards", bestTee?.total_yards.map(String.init))
         }
@@ -100,17 +111,18 @@ struct CourseDetailView: View {
         return VStack(alignment: .leading, spacing: 16) {
             if !tees.isEmpty {
                 Picker("Tee", selection: $selectedTeeIndex) {
-                    ForEach(tees.indices, id: \.self) { i in
-                        Text(tees[i].tee_name ?? "Tee \(i + 1)")
-                    }
+                        ForEach(tees.indices, id: \.self) { i in
+                            let name = tees[i].tee_name ?? "Tee \(i + 1)"
+                            Text(name).tag(i)
+                        }
                 }
                 .pickerStyle(.segmented)
 
                 let tee = tees[min(selectedTeeIndex, tees.count - 1)]
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Tee Details")
+                    Text(selectedTeeName)
                         .font(.headline)
-                    Text("Rating: \(tee.course_rating ?? 0, specifier: "%.1f") • Slope: \(tee.slope_rating ?? 0) • Bogey: \(tee.bogey_rating ?? 0, specifier: "%.1f")")
+                    Text("Rating: \(tee.course_rating ?? 0, specifier: "%.1f") • Slope: \(tee.slope_rating ?? 0)")
                     Text("Par: \(tee.par_total ?? 0) • Yards: \(tee.total_yards ?? 0) • Holes: \(tee.number_of_holes ?? 0)")
                         .foregroundColor(.secondary)
                         .font(.subheadline)

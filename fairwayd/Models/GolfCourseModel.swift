@@ -66,7 +66,7 @@ struct Tees: Codable {
 }
 
 struct Tee: Codable, Identifiable {
-    let tee_name: String?
+    let tee_name: String
     let course_rating: Double?
     let slope_rating: Int?
     let bogey_rating: Double?
