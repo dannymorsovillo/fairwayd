@@ -60,7 +60,7 @@ struct ProfileFormView: View {
                     .padding()
                     .background(
                         highlightedSkillLevel == level ?
-                        Color.green.opacity(0.1) :
+                        Color.green.opacity(0.3) :
                         Color(.systemGray6)
                     )
                     .cornerRadius(12)
@@ -142,6 +142,7 @@ struct ProfileFormView: View {
 #Preview("Edit") {
     NavigationStack {
         ProfileFormView(mode: .edit)
+            .preferredColorScheme(.dark)
     }
     .environmentObject(SessionStore())
 }
