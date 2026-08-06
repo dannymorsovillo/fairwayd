@@ -8,29 +8,6 @@
 import Foundation
 import Supabase
 
-struct PlacesSearchRequest: Codable {
-    let action: String
-    let courseName: String
-    let location: String?
-}
-
-struct PlacesPhotoRequest: Codable {
-    let action: String
-    let placeId: String
-}
-
-struct PlacesSearchResponse: Codable {
-    let results: [PlacesResult]
-}
-
-struct PlacesResult: Codable {
-    let name: String
-    let place_id: String
-}
-
-struct PhotoResponse: Codable {
-    let photoUrl: String
-}
 
 final class GooglePlacesImageProvider {
     private let supabase = SupabaseManager.shared.client

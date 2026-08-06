@@ -11,44 +11,6 @@ import Foundation
 import Supabase
 
 
-struct ChatMessage: Identifiable, Equatable {
-    let id = UUID()
-    
-    enum Role: String {
-        case user
-        case assistant
-    }
-    
-    let role: Role
-    let createdAt = Date()
-    var text: String
-    
-}
-
-private struct HistoryEntry: Codable {
-    let role: String
-    let content: String
-}
-
-private struct ChatContext: Codable {
-    let skillLevel: SkillLevel?
-    let latitude: Double?
-    let longitude: Double?
-}
-
-private struct ChatRequest: Codable {
-    let message: String
-    let history: [HistoryEntry]
-    let context: ChatContext
-}
-
-private struct StreamState: Codable {
-    let type: String
-    let text: String?
-    let name: String?
-    let message: String?
-}
-
 @MainActor
 final class ChatService: ObservableObject {
     private let supabase = SupabaseManager.shared.client

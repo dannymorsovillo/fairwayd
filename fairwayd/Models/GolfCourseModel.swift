@@ -7,6 +7,15 @@
 import Foundation
 import CoreLocation
 
+
+struct SearchRequest: Codable {
+    let query: String
+}
+
+struct CourseIDRequest: Codable {
+    let courseId: String
+}
+
 struct SearchResponse: Codable {
     let courses: [GolfCourse]
 }

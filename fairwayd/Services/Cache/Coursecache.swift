@@ -11,12 +11,6 @@ import CoreLocation
 actor CourseCache {
     private var cache: [String: CachedData] = [:]
     
-    struct CachedData {
-        let courses: [GolfCourse]
-        let timestamp: Date
-        let location: CLLocation
-    }
-    
     func get(for location: CLLocation, skillLevel: SkillLevel? = nil) -> [GolfCourse]? {
         let key = cacheKey(location: location, skillLevel: skillLevel)
         

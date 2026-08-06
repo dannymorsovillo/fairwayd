@@ -10,15 +10,6 @@ import Supabase
 import Combine
 
 
-struct SearchRequest: Codable {
-    let query: String
-}
-
-struct CourseIDRequest: Codable {
-    let courseId: String
-}
-
-
 final class GolfCourseService: ObservableObject {
     @Published var courses: [GolfCourse] = []
     private let supabase = SupabaseManager.shared.client
@@ -51,12 +42,19 @@ final class GolfCourseService: ObservableObject {
     func fetchCourse(id: String) async throws -> GolfCourse {
         let request = CourseIDRequest(courseId: id)
         let bodyData = try JSONEncoder().encode(request)
-        let courseResponse: CourseResponse = try await supabase.functions.invoke(
-            "golf-course-search",
-            options: FunctionInvokeOptions(
-                body:bodyData
+        
+        let courseResponse: CourseResponse
+        do {
+            courseResponse = try await supabase.functions.invoke(
+                "golf-course-search",
+                options: FunctionInvokeOptions(
+                    body:bodyData
+                )
             )
-        )
+        } catch {
+            print("Fetch course failed:", error)
+            throw error
+        }
         return courseResponse.course
     }
     
