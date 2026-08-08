@@ -107,6 +107,7 @@ struct ReviewsView: View {
     
     @EnvironmentObject var reviewService: ReviewService
     @State private var isLoading = false
+    @State private var hasLoaded = false
     @State private var errorText = ""
     @State private var showWriteReview = false
     @State private var selectedImageUrls: [String]?
@@ -160,7 +161,7 @@ struct ReviewsView: View {
     
     @ViewBuilder
     private var reviewContent: some View {
-        if isLoading {
+        if isLoading && !hasLoaded{
             Text("Loading reviews…")
                 .frame(maxWidth: .infinity)
         } else if !errorText.isEmpty {
@@ -236,7 +237,10 @@ struct ReviewsView: View {
     private func loadReviews() async {
         isLoading = true
         errorText = ""
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            hasLoaded = true
+        }
         
         do {
             _ = try await reviewService.fetchReviewsByCourseName(courseName)

@@ -66,7 +66,5 @@ private struct UnauthenticatedView: View {
                     }
                 }
         }
-        // Colors the system back button on the pushed screens.
-        .tint(.green)
     }
 }

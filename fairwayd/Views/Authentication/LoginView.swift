@@ -86,12 +86,12 @@ struct LoginView: View {
         .onDisappear { session.errorMessage = nil }
     }
 
- //private var
 }
 #Preview {
     NavigationStack {
         LoginView()
     }
     .environmentObject(SessionStore())
+    .preferredColorScheme(.dark)
 }
 

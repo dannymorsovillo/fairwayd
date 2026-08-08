@@ -5,6 +5,7 @@
 //  Created by Danny Morsovillo on 11/12/25.
 //
 import SwiftUI
+import UIKit
 import GoogleSignIn
 import CoreML
 
@@ -15,8 +16,8 @@ struct fairwaydApp: App {
     @StateObject private var engagementStore = EngagementStore()
     @StateObject private var locationManager = LocationManager()
     @StateObject private var chatService = ChatService()
-    
     @StateObject private var service = GolfCourseService()
+    
     @StateObject private var finderService: GolfCourseFinderService
     @StateObject private var exploreService: ExploreService
     @StateObject private var recommendationService: RecommendationService
@@ -62,10 +63,10 @@ struct fairwaydApp: App {
         WindowGroup {
             Group {
                 //#if DEBUG
-               // MLExportDebugView()
+                // MLExportDebugView()
                 //#else
-                LocalNotifications()
-                //RootView()
+                //LocalNotifications()
+                RootView()
                 //#endif
             }
             .environmentObject(session)
