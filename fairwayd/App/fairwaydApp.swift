@@ -64,7 +64,8 @@ struct fairwaydApp: App {
                 //#if DEBUG
                // MLExportDebugView()
                 //#else
-                RootView()
+                LocalNotifications()
+                //RootView()
                 //#endif
             }
             .environmentObject(session)

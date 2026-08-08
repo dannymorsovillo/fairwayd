@@ -62,6 +62,7 @@ struct WriteReviewView: View {
                                         do {
                                             courseSuggestions = try await GolfCourseService().searchCourses(query: newValue)
                                         }catch {
+                                            print("Erroring searching courses: \(error.localizedDescription)")
                                             courseSuggestions = []
                                         }
                                     } else {

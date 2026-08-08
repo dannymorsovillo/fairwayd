@@ -12,6 +12,7 @@ import Combine
 
 final class GolfCourseService: ObservableObject {
     @Published var courses: [GolfCourse] = []
+    
     private let supabase = SupabaseManager.shared.client
 
     // MARK: - /v1/search
@@ -29,7 +30,7 @@ final class GolfCourseService: ObservableObject {
                 )
             )
         } catch {
-            print("Search request failed:", error)
+            
             throw error
         }
         

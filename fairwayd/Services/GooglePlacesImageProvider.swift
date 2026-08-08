@@ -12,6 +12,10 @@ import Supabase
 final class GooglePlacesImageProvider {
     private let supabase = SupabaseManager.shared.client
     
+    enum PlacesError: Error {
+        
+    }
+    
     func fetchPlaceID(
         courseName: String,
         location: String?

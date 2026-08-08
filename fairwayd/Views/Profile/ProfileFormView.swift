@@ -27,9 +27,6 @@ struct ProfileFormView: View {
     }
 
     var body: some View {
-        // No navigation container here — both call sites supply one (RootView
-        // wraps .setup, AccountView pushes .edit). Nesting one inside another
-        // stacks two bars and pushes the title down.
         VStack(alignment: .leading, spacing: 16) {
             Text("Skill Level")
                 .font(.headline)

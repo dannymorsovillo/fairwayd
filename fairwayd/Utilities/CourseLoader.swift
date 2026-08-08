@@ -137,17 +137,22 @@ final class CourseLoader {
         
         // Get nearby courses for enrichment (use cache if available)
         var nearbyCourses: [GolfCourse] = []
+        
         if let location = location {
             if let cached = await courseCache.get(for: location) {
                 nearbyCourses = cached
             } else {
-                let clubs = try? await finderService.fetchNearbyCourses(
-                    latitude: location.coordinate.latitude,
-                    longitude: location.coordinate.longitude,
-                    miles: 50
-                )
-                if let clubs = clubs {
+                do {
+                    let clubs = try await finderService.fetchNearbyCourses(
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        miles: 50
+                    )
+                    
                     nearbyCourses = finderService.mapNearbyClubsToGolfCourses(clubs)
+                } catch {
+                    print("Failed to map nearby clubs to courses", error)
+                    throw error
                 }
             }
         }

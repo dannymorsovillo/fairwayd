@@ -15,7 +15,7 @@ import SwiftUI
             Form {
                 Section("Details") {
                     if let user = session.currentUser {
-                        HStack {
+                            HStack {
                             Text("Email")
                             Spacer()
                             Text(user.email)
@@ -63,7 +63,6 @@ import SwiftUI
                               systemImage: isDarkMode == true ? "moon.fill" : "sun.max.fill")
                         .foregroundStyle(.green)
                     }
-                    .liquidGlass()
                     .tint(.green)
                 }
                     
@@ -77,7 +76,6 @@ import SwiftUI
                             Text("Log out")
                             Spacer()
                         }
-                        .liquidGlass()
                     }
                 }
             }
@@ -86,4 +84,9 @@ import SwiftUI
 
         }
     }
+#Preview {
+    AccountView()
+       // .preferredColorScheme(.dark)
+        .environmentObject(SessionStore())
+}
 
